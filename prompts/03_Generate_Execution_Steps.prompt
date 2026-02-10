@@ -1,0 +1,25 @@
+Decompose this TODO @AgentFirstTODO into ordered execution steps suitable for step-by-step implementation with manual testing between steps.
+
+Output:
+- One markdown file per step under docs/TODO/active/steps/
+- Filename pattern: {TODO_NUMBER}.{N:2d}_{short_slug}.md
+  Example: 15.1_TODO_Amount_Qualifier_Detection.md --> 15.1.1_patterns_module.md, 15.1.2_tests.md
+- Each step file must contain:
+  1. Step number and title
+  2. Goal (what this step achieves)
+  3. Depends on: (step number or "none")
+  4. Concrete tasks (bullet list)
+  5. "How to verify" (commands or checks to run; must be runnable; run linter checks only for affected files)
+  6. Estimated duration (target ~1 hour or less per step)
+
+Rules:
+- Each step must be independently testable.
+- Tests must mock or explicitly close any I/O used by the code under test (Redis, DB, BullMQ, HTTP servers, timers) so Jest exits with no open handles.
+- If the TODO involves database changes, never include a step that requests a full DB reset; use additive migrations only.
+- Do NOT write any code yet.
+- Do NOT repeat the full design from the TODO; reference it by section (e.g. "per §5 Architectural Approach").
+- Last step file must include: "After this step is verified, move the Agent-First TODO file from docs/TODO/active/ to docs/TODO/completed/ (use mv, same filename)."
+- If there are open questions that block decomposition, list them and stop; do not create step files until resolved.
+- Do not commit to git.
+
+Create only the step files. No summary document unless the TODO explicitly asks for one.

@@ -1,0 +1,168 @@
+===============================
+2026 AGENT-FIRST TODO TEMPLATE
+===============================
+
+Feature Name:
+<short, descriptive name>
+
+--------------------------------
+0. STATUS & SCOPE
+--------------------------------
+Status:
+PLANNING | IN PROGRESS | BLOCKED
+
+Priority:
+LOW | MEDIUM | HIGH | CRITICAL
+
+Target Phase / Release:
+<if applicable>
+
+Out of Scope (explicit):
+- <things this feature will NOT address>
+
+
+--------------------------------
+1. PROBLEM STATEMENT (WHY)
+--------------------------------
+Describe the problem, not the solution.
+
+- What user or system problem does this solve?
+- What is broken, missing, inefficient, or limiting today?
+- What happens if we do not build this?
+
+Avoid implementation details.
+
+
+--------------------------------
+2. SUCCESS CRITERIA (DEFINITION OF DONE)
+--------------------------------
+This feature is successful if:
+
+- [ ] Observable user or system behavior X
+- [ ] Performance, correctness, or reliability constraint Y
+- [ ] Backward compatibility guarantee Z
+- [ ] No regressions in critical areas
+
+These must be verifiable.
+
+
+--------------------------------
+3. CORE INVARIANTS (NON-NEGOTIABLE)
+--------------------------------
+The following must never be violated:
+
+- <Single source of truth for X>
+- <Canonical representations or formats>
+- <Security, correctness, or data integrity rules>
+
+Any solution that violates an invariant is incorrect.
+
+
+--------------------------------
+4. CONSTRAINTS & ASSUMPTIONS
+--------------------------------
+
+Technical Constraints:
+- <DB schema assumptions>
+- <Latency / runtime limits>
+- <Deployment or infrastructure constraints>
+
+Product Constraints:
+- <UX, localization, accessibility requirements>
+
+Organizational Constraints:
+- <Team boundaries, ownership, release constraints>
+
+Assumptions (explicit and challengeable):
+- <Assumption 1>
+- <Assumption 2>
+
+
+--------------------------------
+5. ARCHITECTURAL APPROACH (HIGH LEVEL)
+--------------------------------
+Describe the shape of the solution.
+
+- Where does this logic live (domain, service, boundary)?
+- What is the source of truth?
+- What responsibilities are explicitly excluded?
+
+No file paths.
+No method signatures.
+
+
+--------------------------------
+6. DECISION POINTS (AGENT MUST REASON)
+--------------------------------
+The agent must evaluate and justify decisions.
+
+Decision A:
+- Option 1: <description>
+- Option 2: <description>
+Tradeoff to evaluate:
+- <e.g. correctness vs performance>
+
+Decision B:
+- <...>
+
+
+--------------------------------
+7. EXTERNAL DEPENDENCIES
+--------------------------------
+Required prerequisites:
+- <Phase / system> — <reason>
+
+Optional or future integrations:
+- <Context only, not required now>
+
+
+--------------------------------
+8. FAILURE MODES & EDGE CASES
+--------------------------------
+What could go wrong?
+
+- Invalid or partial data
+- Unknown inputs or formats
+- Migration or rollback scenarios
+- Partial system availability
+
+
+--------------------------------
+9. TESTING EXPECTATIONS (INTENT)
+--------------------------------
+Describe what must be proven correct.
+
+- Which invariants must tests enforce?
+- Which edge cases require explicit coverage?
+- What failure modes must be validated?
+
+Do not list individual test names.
+
+
+--------------------------------
+10. EXPLICIT NON-GOALS
+--------------------------------
+To prevent scope creep, this feature does NOT address:
+
+- <Non-goal 1>
+- <Non-goal 2>
+
+
+--------------------------------
+11. OPEN QUESTIONS
+--------------------------------
+Unresolved issues that affect design or scope:
+
+- <Question 1>
+- <Question 2>
+
+
+--------------------------------
+12. AGENT INSTRUCTIONS
+--------------------------------
+Mandatory instructions:
+
+- Use Context7 for framework and library best practices.
+- Surface conflicts between Context7 guidance and project rules.
+- Prefer clarity over cleverness.
+- Do not invent requirements not listed above.

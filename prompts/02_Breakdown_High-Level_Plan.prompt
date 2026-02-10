@@ -1,0 +1,17 @@
+You are given a high-level feature overview @HighLevelTemplate
+
+Your task:
+- Decompose this overview into multiple focused TODOs.
+- Each TODO must use the provided @01_Agent-First_TODO.template
+- Each TODO should solve one coherent problem.
+- Do NOT repeat the entire overview in each TODO.
+- Preserve all core invariants and constraints from the overview.
+- Surface design decisions and tradeoffs explicitly.
+- Assume Context7 will be used for framework and library details.
+- If any open questions do not create document yet and let's resolve together. Give at leat 3 of your suggestions with short explanation why, for each of the questions  
+
+Output:
+- 3–5 TODOs
+- Each TODO standalone and executable by an agent
+- Keep each TODO concise (2–4 pages max)
+- store files in /docs/TODO/active

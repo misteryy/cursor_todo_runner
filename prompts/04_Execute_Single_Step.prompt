@@ -1,0 +1,15 @@
+We are executing this step file: @StepFile
+
+Implement only what this step describes. Do not anticipate or implement future steps.
+
+Rules:
+- Do not refactor or change code outside the scope of this step.
+- After implementing, run the "How to verify" section for this step (commands, tests, or checks). If the step defines tests or a verification command, run it and report pass/fail.
+- Stop when this step is complete and verified.
+- Summarize: (1) what changed, (2) verification result (what you ran and outcome).
+
+On successful completion:
+- Move this step file from docs/TODO/active/steps/ to docs/TODO/completed/steps/ using mv (same filename).
+- If this step file instructs you to move the parent Agent-First TODO to completed (e.g. "last step" instruction), do that as well: mv the TODO from docs/TODO/active/ to docs/TODO/completed/, same filename.
+
+Do not commit to git.

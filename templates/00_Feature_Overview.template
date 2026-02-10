@@ -1,0 +1,107 @@
+====================================
+FEATURE OVERVIEW — <Feature Name>
+====================================
+
+Status:
+IDEA | EXPLORING | APPROVED
+
+Priority:
+LOW | MEDIUM | HIGH | CRITICAL
+
+Related Phases / Features:
+- <Links or names>
+
+
+------------------------------------
+1. PROBLEM & MOTIVATION
+------------------------------------
+What problem does this feature solve?
+
+- Who is affected?
+- What is currently impossible, broken, or inefficient?
+- Why does this matter now?
+
+No solutions yet.
+
+
+------------------------------------
+2. GOALS (WHAT SUCCESS LOOKS LIKE)
+------------------------------------
+If this feature is successful:
+
+- Users can <do X>
+- The system guarantees <Y>
+- We avoid <known bad outcome Z>
+
+
+------------------------------------
+3. NON-GOALS
+------------------------------------
+Explicitly out of scope:
+
+- <Thing we are not solving>
+- <Deferred concerns>
+
+
+------------------------------------
+4. CURRENT STATE
+------------------------------------
+Briefly describe how things work today.
+
+- Relevant tables, services, or flows
+- Known limitations
+- Existing assumptions
+
+
+------------------------------------
+5. KEY CONCEPTS & TERMINOLOGY
+------------------------------------
+Define new concepts introduced by this feature.
+
+- <Concept A>: <short definition>
+- <Concept B>: <short definition>
+
+
+------------------------------------
+6. CONSTRAINTS & REALITIES
+------------------------------------
+Hard constraints:
+
+- Technical
+- Product
+- Organizational
+
+Assumptions (challengeable):
+
+- <Assumption 1>
+- <Assumption 2>
+
+
+------------------------------------
+7. RISKS & UNKNOWNs
+------------------------------------
+What could go wrong?
+
+- Data complexity
+- Migration risks
+- Performance concerns
+- UX ambiguity
+
+
+------------------------------------
+8. OPEN QUESTIONS
+------------------------------------
+Unresolved questions that affect direction:
+
+- <Question 1>
+- <Question 2>
+
+
+------------------------------------
+9. NEXT STEP
+------------------------------------
+What happens next?
+
+- Produce Agent-First TODOs
+- Spike / prototype
+- Research or validation
