@@ -3,11 +3,27 @@
  * Resolves next TODO step from docs/TODO (active/steps vs completed/steps),
  * respects "Depends on", and writes docs/TODO/runner/NEXT.md.
  * Run from project root. If action_required has any file, prints that and exits.
+ *
+ * Options:
+ *   --phase ID   Only consider steps whose id starts with ID (e.g. P1_03 for P1_03.1, P1_03.2).
  */
 
 import fs from "fs";
 import path from "path";
 
+function parseArgs() {
+  const args = process.argv.slice(2);
+  let phase = null;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--phase" && args[i + 1]) {
+      phase = args[i + 1];
+      i++;
+    }
+  }
+  return { phase };
+}
+
+const { phase: phaseFilter } = parseArgs();
 const ROOT = process.cwd();
 const TODO_DIR = path.join(ROOT, "docs", "TODO");
 const ACTIVE_STEPS_DIR = path.join(TODO_DIR, "active", "steps");
@@ -99,7 +115,14 @@ function main() {
   }
 
   const completedIds = getCompletedIds();
-  const pending = getPendingSteps();
+  let pending = getPendingSteps();
+  if (phaseFilter) {
+    pending = pending.filter((s) => s.id && (s.id === phaseFilter || s.id.startsWith(phaseFilter + ".")));
+    if (pending.length === 0) {
+      console.log(`No pending steps matching phase '${phaseFilter}' in docs/TODO/active/steps/.");
+      process.exit(0);
+    }
+  }
   if (pending.length === 0) {
     console.log("No pending steps (no step files in docs/TODO/active/steps/).");
     process.exit(0);

@@ -127,8 +127,8 @@ Step filenames: use a consistent id prefix so the runner can sort and resolve de
 ### 4. Execute steps (Auto runner)
 
 - **Scripts:** Run from **project root** (the repo that contains `docs/TODO`):
-  - `node <path-to-runner>/todo-next-step.mjs` — resolves next step, writes `docs/TODO/runner/NEXT.md` and `RUNNER_PROMPT.txt`.
-  - `bash <path-to-runner>/todo-run-steps.sh` — loop: resolve next → run Cursor CLI with that prompt → repeat.
+  - `node <path-to-runner>/todo-next-step.mjs [--phase ID]` — resolves next step, writes `docs/TODO/runner/NEXT.md` and `RUNNER_PROMPT.txt`. Option `--phase ID` limits to steps whose id starts with `ID` (e.g. `P1_03` for steps `P1_03.1`, `P1_03.2`, …).
+  - `bash <path-to-runner>/todo-run-steps.sh [OPTIONS] [ROOT]` — loop: resolve next → run Cursor CLI with that prompt → repeat. See **CLI options** below.
 - **Model:** Cursor CLI with `--model auto` (steps are sized for Auto).
 - **Prompt:** Effectively `prompts/04_Execute_Single_Step.prompt` with the current step file @-mentioned as `@StepFile` (injected into `RUNNER_PROMPT.txt`).
 - **Rules:** Implement only that step; run “How to verify”; on success, move the step file to `docs/TODO/completed/steps/`; if it’s the last step for a TODO, move that TODO to `docs/TODO/completed/`. No git commit.
@@ -152,6 +152,26 @@ Templates used:
 ---
 
 ## Usage
+
+### CLI options (todo-run-steps.sh)
+
+| Option | Description |
+|--------|-------------|
+| `--once` | Run at most one step, then exit. |
+| `--steps N` | Run at most N steps, then exit. |
+| `--phase ID` | Only run steps whose step id starts with `ID` (e.g. `P1_03` for `P1_03.1`, `P1_03.2`, …). |
+| `[ROOT]` | Project root; default is current directory. |
+
+Examples:
+
+```bash
+bash todo-runner/todo-run-steps.sh --once              # run one step and stop
+bash todo-runner/todo-run-steps.sh --steps 3           # run up to 3 steps
+bash todo-runner/todo-run-steps.sh --phase P1_03       # only steps for phase/todo P1_03
+bash todo-runner/todo-run-steps.sh --once --phase P1_03  # one step from P1_03 only
+```
+
+The **todo-next-step.mjs** script accepts `--phase ID` as well when you only want to resolve the next step for a given phase (e.g. for manual runs).
 
 ### In one project (runner copied into repo)
 
