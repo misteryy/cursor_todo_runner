@@ -63,6 +63,7 @@ SUMMARY_PROMPT="$ROOT/docs/TODO/runner/SUMMARY_PROMPT.txt"
 SESSION_FILE="$ROOT/docs/TODO/runner/session_todos.json"
 RUNS=0
 SESSION_TODOS=()
+SUMMARY_DONE=""  # Set to 1 when summary has been run (so trap does not run it again)
 
 # Track TODO IDs touched in this session
 track_todo() {
@@ -108,20 +109,29 @@ generate_summary() {
     echo "Generating summary for $todo_id..."
     if node "$RUNNER_DIR/todo-generate-summary.mjs" --todo "$todo_id"; then
       echo "Running Cursor agent to write summary..."
+      set +e
       agent -p --force --model auto \
         --output-format stream-json --stream-partial-output \
         "$(cat "$SUMMARY_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
+      AGENT_EXIT=$?
+      set -e
+      if [[ $AGENT_EXIT -ne 0 ]]; then
+        echo "Warning: summary agent exited with $AGENT_EXIT (summary may still have been written). Check $AGENT_LOG for output." >&2
+      fi
     fi
   done
 
   # Clean up session file
   rm -f "$SESSION_FILE"
+  SUMMARY_DONE=1
 }
 
-# Trap to generate summary on exit (normal or interrupted)
+# Trap: only run summary on unexpected exit (e.g. interrupt, early exit). Normal end-of-run exits call generate_summary explicitly first.
 cleanup() {
   local exit_code=$?
-  generate_summary
+  if [[ -z "${SUMMARY_DONE:-}" ]]; then
+    generate_summary
+  fi
   exit $exit_code
 }
 trap cleanup EXIT
@@ -132,6 +142,7 @@ while true; do
   case "$NEXT_EXIT" in
     0) ;; # Next step written; proceed to run agent
     2) echo "No pending steps; stopping."
+       generate_summary
        exit 0 ;;
     1) echo "Step blocked or action required; resolve then re-run."
        echo "  If you just ran a step, the agent may not have moved it — from project root run: node $RUNNER_DIR/accept-step.mjs (or yarn todo:accept), then re-run."
@@ -143,6 +154,7 @@ while true; do
   STEP_FILE="$ROOT/$(sed -n '1s/.* @\([^[:space:]]*\).*/\1/p' "$RUNNER_PROMPT")"
   if [[ -z "$STEP_FILE" || ! -f "$STEP_FILE" ]]; then
     echo "Step file missing or unreadable; stopping to avoid loop."
+    generate_summary
     exit 0
   fi
 
@@ -166,9 +178,13 @@ while true; do
     fi
   fi
 
-  [[ -n "$ONCE" ]] && exit 0
+  if [[ -n "$ONCE" ]]; then
+    generate_summary
+    exit 0
+  fi
   if [[ -n "$STEPS" && "$RUNS" -ge "$STEPS" ]]; then
     echo "Reached --steps $STEPS; stopping."
+    generate_summary
     exit 0
   fi
 done
