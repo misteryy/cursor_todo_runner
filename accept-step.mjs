@@ -34,10 +34,17 @@ function main() {
   const filename = path.basename(stepPath);
   const src = stepPath;
   const dest = path.join(COMPLETED_STEPS, filename);
+
+  // If source doesn't exist, check if it was already moved to completed (agent may have done it)
   if (!fs.existsSync(src)) {
+    if (fs.existsSync(dest)) {
+      console.log("Step already in completed (agent moved it):", filename);
+      process.exit(0); // Success — step was completed
+    }
     console.error("Step file not found:", src);
     process.exit(1);
   }
+
   if (!fs.existsSync(COMPLETED_STEPS)) fs.mkdirSync(COMPLETED_STEPS, { recursive: true });
   fs.renameSync(src, dest);
   console.log("Moved to completed:", filename);
