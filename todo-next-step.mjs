@@ -160,8 +160,9 @@ For manual run: paste the contents of RUNNER_PROMPT.txt into the chat (the @path
 `;
 
   fs.writeFileSync(NEXT_FILE, nextMd, "utf8");
+  const promptFileAbs = path.resolve(PROMPT_FILE);
   console.log(`Next step: ${next.id} (${next.filename})`);
-  console.log(`Written: ${NEXT_FILE}, ${PROMPT_FILE}`);
+  console.log(`Written: ${path.resolve(NEXT_FILE)}, ${promptFileAbs}`);
 }
 
 main();

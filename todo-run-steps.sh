@@ -46,6 +46,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 ROOT="${ROOT:-$(pwd)}"
+# Normalize to absolute path so shell and node (process.cwd()) agree on runner files
+[[ -n "$ROOT" && "$ROOT" != /* ]] && ROOT="$(cd "$ROOT" && pwd)"
 cd "$ROOT"
 
 export PATH="$HOME/.local/bin:$PATH"
@@ -58,8 +60,10 @@ NEXT_ARGS=()
 [[ -n "$PHASE" ]] && NEXT_ARGS+=(--phase "$PHASE")
 
 AGENT_LOG="$ROOT/docs/TODO/runner/agent_output.log"
-RUNNER_PROMPT="$ROOT/docs/TODO/runner/RUNNER_PROMPT.txt"
-SUMMARY_PROMPT="$ROOT/docs/TODO/runner/SUMMARY_PROMPT.txt"
+RUNNER_DIR_FILES="$ROOT/docs/TODO/runner"
+RUNNER_PROMPT="$RUNNER_DIR_FILES/RUNNER_PROMPT.txt"
+SUMMARY_PROMPT="$RUNNER_DIR_FILES/SUMMARY_PROMPT.txt"
+NEXT_FILE="$RUNNER_DIR_FILES/NEXT.md"
 SESSION_FILE="$ROOT/docs/TODO/runner/session_todos.json"
 RUNS=0
 SESSION_TODOS=()
@@ -150,18 +154,30 @@ while true; do
     *) echo "todo-next-step.mjs exited with $NEXT_EXIT; stopping."
        exit "$NEXT_EXIT" ;;
   esac
-  # Resolve step file path from RUNNER_PROMPT (line 1: "... @docs/TODO/active/steps/STEP.md")
-  STEP_FILE="$ROOT/$(sed -n '1s/.* @\([^[:space:]]*\).*/\1/p' "$RUNNER_PROMPT")"
+  # Resolve step file path from NEXT.md (single source of truth written by todo-next-step).
+  # Using NEXT.md avoids depending on RUNNER_PROMPT format and avoids sed failure if that file
+  # were missing/unreadable or had encoding issues; no race/lock expected (node exits before we read).
+  if [[ ! -r "$NEXT_FILE" ]]; then
+    echo "NEXT.md missing or unreadable: $NEXT_FILE (todo-next-step should have written it); stopping."
+    generate_summary
+    exit 1
+  fi
+  STEP_FILE="$ROOT/$(sed -n 's/.*\*\*Step file:\*\* `\([^`]*\)`.*/\1/p' "$NEXT_FILE" | head -1)"
   if [[ -z "$STEP_FILE" || "$STEP_FILE" == "$ROOT/" ]]; then
-    echo "Step file path empty (RUNNER_PROMPT first line may not match pattern); stopping to avoid loop."
+    echo "Step file path empty (NEXT.md may not match expected pattern); stopping to avoid loop."
     generate_summary
     exit 0
   fi
   if [[ ! -f "$STEP_FILE" ]]; then
     echo "Step file missing or unreadable: $STEP_FILE"
-    echo "  (RUNNER_PROMPT was just written by todo-next-step; file should be in docs/TODO/active/steps/.)"
+    echo "  (NEXT.md was just written by todo-next-step; file should be in docs/TODO/active/steps/.)"
     generate_summary
     exit 0
+  fi
+  if [[ ! -r "$RUNNER_PROMPT" ]]; then
+    echo "RUNNER_PROMPT missing or unreadable: $RUNNER_PROMPT (needed for agent prompt); stopping."
+    generate_summary
+    exit 1
   fi
 
   # Track this TODO for summary generation
