@@ -2,8 +2,9 @@ Decompose this TODO @AgentFirstTODO into ordered execution steps suitable for st
 
 Output:
 - One markdown file per step under docs/TODO/active/steps/
-- Filename pattern: {TODO_NUMBER}.{N:2d}_{short_slug}.md
-  Example: 15.1_TODO_Amount_Qualifier_Detection.md --> 15.1.1_patterns_module.md, 15.1.2_tests.md
+- Filename pattern: P{phase}_{todo}.{step:2d}_{short_slug}.md — do NOT include the word "TODO" in the filename.
+  Derive phase and todo from the Agent-First TODO filename (e.g. P1_TODO_01_Flutter_Project_Init.md → phase 1, todo 01).
+  Example step filenames: P1_01.01_environment_verification.md, P1_01.02_flutter_create.md (not P1_TODO_01.01_...).
 - Each step file must contain:
   1. Step number and title
   2. Goal (what this step achieves)

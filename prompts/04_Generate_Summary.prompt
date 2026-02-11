@@ -1,0 +1,61 @@
+You are generating an execution summary for work completed during a TODO runner session.
+
+## Input Context
+
+- **TODO file**: @TodoFile
+- **Completed steps this session**: @CompletedSteps
+- **Pending steps (not yet done)**: @PendingSteps
+- **Blocker (if any)**: @ActionRequired
+- **Run outcome**: @Outcome (SUCCESS | PARTIAL | BLOCKED)
+
+## Summary Requirements
+
+Write a comprehensive execution summary covering the sections below. Adapt depth to the amount of work done — a single step needs less detail than a full TODO.
+
+### 1. Overview
+- What TODO/feature was being implemented (1-2 sentences)
+- Final status: fully complete, partially complete, or blocked
+- Steps completed vs total (e.g., "3 of 5 steps completed")
+
+### 2. What Was Implemented
+For each completed step:
+- Brief description of what was built or changed
+- Key files created or modified
+- Notable implementation decisions or patterns used
+
+### 3. Technical Details
+- Dependencies added or configured (if any)
+- Architecture patterns or conventions followed
+- Tests written and what they cover (if any)
+
+### 4. Verification Results
+- What verification commands were run for each step
+- Outcomes (pass/fail)
+- Any warnings or notes worth preserving
+
+### 5. Current State
+If not fully complete:
+- What remains to be done (list pending steps with brief descriptions)
+- Current blockers (if any)
+- Specific actions needed to continue
+
+### 6. Blockers and Resolution (only if BLOCKED)
+- Exact error or failure that caused the block
+- Root cause analysis (if determinable)
+- Recommended resolution path(s)
+- Environment or dependency notes
+
+## Output Guidelines
+
+- Write as markdown
+- Be thorough but concise — completeness without redundancy
+- Include code snippets or command output only when they clarify important points
+- Use bullet points for lists; paragraphs for narrative sections
+- Target length: proportional to work done (1 step ≈ 1 page; full TODO ≈ 2-4 pages)
+
+## Output Location
+
+Save the summary to the path provided. Do not create additional files.
+If the file already exists, overwrite it with the updated state.
+
+Do not commit to git.

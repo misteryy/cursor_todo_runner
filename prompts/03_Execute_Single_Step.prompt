@@ -12,4 +12,8 @@ On successful completion:
 - Move this step file from docs/TODO/active/steps/ to docs/TODO/completed/steps/ using mv (same filename).
 - If this step file instructs you to move the parent Agent-First TODO to completed (e.g. "last step" instruction), do that as well: mv the TODO from docs/TODO/active/ to docs/TODO/completed/, same filename.
 
+When verification does NOT pass (e.g. command fails, environment missing, tests fail):
+- Do NOT move the step file.
+- Create exactly one markdown file in docs/TODO/action_required/ describing what failed and what the user must do to fix it. Use a clear filename, e.g. step_P1_01.01_environment_verification.md or step_<stepId>_blocked.md. The runner will not run further steps until this file is removed after the user resolves the issue.
+
 Do not commit to git.

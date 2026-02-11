@@ -4,12 +4,21 @@
  * respects "Depends on", and writes docs/TODO/runner/NEXT.md.
  * Run from project root. If action_required has any file, prints that and exits.
  *
+ * Exit codes:
+ *   0  Next step written; runner may invoke the agent.
+ *   1  Action required or step blocked (dependencies not met).
+ *   2  No pending steps (for this phase or at all); runner must not invoke the agent.
+ *
  * Options:
  *   --phase ID   Only consider steps whose id starts with ID (e.g. P1_03 for P1_03.1, P1_03.2).
  */
 
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const EXECUTE_STEP_PROMPT_PATH = path.join(SCRIPT_DIR, "prompts", "03_Execute_Single_Step.prompt");
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -33,21 +42,13 @@ const RUNNER_DIR = path.join(TODO_DIR, "runner");
 const NEXT_FILE = path.join(RUNNER_DIR, "NEXT.md");
 const PROMPT_FILE = path.join(RUNNER_DIR, "RUNNER_PROMPT.txt");
 
-const STEP_PROMPT_TEMPLATE = `We are executing this step file: @StepFile
-
-Implement only what this step describes. Do not anticipate or implement future steps.
-
-Rules:
-- Do not refactor or change code outside the scope of this step.
-- After implementing, run the "How to verify" section for this step (commands, tests, or checks). If the step defines tests or a verification command, run it and report pass/fail.
-- Stop when this step is complete and verified.
-- Summarize: (1) what changed, (2) verification result (what you ran and outcome).
-
-On successful completion:
-- Move this step file from docs/TODO/active/steps/ to docs/TODO/completed/steps/ using mv (same filename).
-- If this step file instructs you to move the parent Agent-First TODO to completed (e.g. "last step" instruction), do that as well: mv the TODO from docs/TODO/active/ to docs/TODO/completed/, same filename.
-
-Do not commit to git.`;
+function loadExecuteStepPrompt(stepPath) {
+  const template = fs.readFileSync(EXECUTE_STEP_PROMPT_PATH, "utf8");
+  if (!template.includes("@StepFile")) {
+    throw new Error(`${EXECUTE_STEP_PROMPT_PATH} must contain @StepFile placeholder`);
+  }
+  return template.replace("@StepFile", "@" + stepPath);
+}
 
 const STEP_ID_REGEX = /P\d+_\d+\.\d+/g;
 
@@ -120,26 +121,33 @@ function main() {
     pending = pending.filter((s) => s.id && (s.id === phaseFilter || s.id.startsWith(phaseFilter + ".")));
     if (pending.length === 0) {
       console.log(`No pending steps matching phase '${phaseFilter}' in docs/TODO/active/steps/.`);
-      process.exit(0);
+      process.exit(2);
     }
   }
   if (pending.length === 0) {
     console.log("No pending steps (no step files in docs/TODO/active/steps/).");
-    process.exit(0);
+    process.exit(2);
   }
 
-  const ready = topoNext(pending, completedIds);
+  let ready = topoNext(pending, completedIds);
   if (ready.length === 0) {
     const blocked = pending.map((s) => s.id).join(", ");
     console.log(`No step ready. Pending: ${blocked}. Complete dependencies first.`);
     process.exit(1);
+  }
+  // Only consider steps whose file still exists (e.g. not moved by a completed run)
+  const activeStepsAbs = path.join(ROOT, "docs", "TODO", "active", "steps");
+  ready = ready.filter((s) => fs.existsSync(path.join(activeStepsAbs, s.filename)));
+  if (ready.length === 0) {
+    console.log("No runnable step (step file(s) missing, e.g. already completed); stopping.");
+    process.exit(2);
   }
 
   const next = ready[0];
   const stepPath = path.join("docs", "TODO", "active", "steps", next.filename);
   if (!fs.existsSync(RUNNER_DIR)) fs.mkdirSync(RUNNER_DIR, { recursive: true });
 
-  const promptText = STEP_PROMPT_TEMPLATE.replace("@StepFile", "@" + stepPath);
+  const promptText = loadExecuteStepPrompt(stepPath);
   fs.writeFileSync(PROMPT_FILE, promptText, "utf8");
 
   const nextMd = `# Next step
