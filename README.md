@@ -242,6 +242,13 @@ node "$TODO_RUNNER_HOME/todo-next-step.mjs"
 bash "$TODO_RUNNER_HOME/todo-run-steps.sh"
 ```
 
+If you keep only `todo-run-steps.sh` in the project (e.g. `cursor_todo_runner/todo-run-steps.sh`) and the rest of the runner lives elsewhere, set **`CURSOR_TODO_RUNNER_DIR`** to the full path of the runner repo so the script can find `accept-step.mjs`, `todo-next-step.mjs`, and `todo-generate-summary.mjs`:
+
+```bash
+export CURSOR_TODO_RUNNER_DIR=~/.local/share/todo-runner
+bash cursor_todo_runner/todo-run-steps.sh
+```
+
 Or in each project's `package.json`:
 
 ```json

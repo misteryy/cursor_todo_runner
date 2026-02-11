@@ -12,7 +12,23 @@
 #   [ROOT]           Project root (default: current directory).
 
 set -e
-RUNNER_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Use CURSOR_TODO_RUNNER_DIR if set and it contains required scripts; else use script dir if complete
+REQUIRED="accept-step.mjs todo-next-step.mjs todo-generate-summary.mjs"
+if [[ -n "${CURSOR_TODO_RUNNER_DIR:-}" ]]; then
+  all_ok=1
+  for f in $REQUIRED; do [[ -f "${CURSOR_TODO_RUNNER_DIR}/$f" ]] || all_ok=0; done
+  [[ $all_ok -eq 1 ]] && RUNNER_DIR="$CURSOR_TODO_RUNNER_DIR"
+fi
+if [[ -z "${RUNNER_DIR:-}" ]]; then
+  all_ok=1
+  for f in $REQUIRED; do [[ -f "$SCRIPT_DIR/$f" ]] || all_ok=0; done
+  [[ $all_ok -eq 1 ]] && RUNNER_DIR="$SCRIPT_DIR"
+fi
+if [[ -z "${RUNNER_DIR:-}" ]]; then
+  echo "Runner scripts not found. Either copy the full cursor_todo_runner (including accept-step.mjs, todo-next-step.mjs, todo-generate-summary.mjs) into your project, or set CURSOR_TODO_RUNNER_DIR to the runner repo root."
+  exit 127
+fi
 
 ONCE=""
 STEPS=""
