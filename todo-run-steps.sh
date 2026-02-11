@@ -152,8 +152,14 @@ while true; do
   esac
   # Resolve step file path from RUNNER_PROMPT (line 1: "... @docs/TODO/active/steps/STEP.md")
   STEP_FILE="$ROOT/$(sed -n '1s/.* @\([^[:space:]]*\).*/\1/p' "$RUNNER_PROMPT")"
-  if [[ -z "$STEP_FILE" || ! -f "$STEP_FILE" ]]; then
-    echo "Step file missing or unreadable; stopping to avoid loop."
+  if [[ -z "$STEP_FILE" || "$STEP_FILE" == "$ROOT/" ]]; then
+    echo "Step file path empty (RUNNER_PROMPT first line may not match pattern); stopping to avoid loop."
+    generate_summary
+    exit 0
+  fi
+  if [[ ! -f "$STEP_FILE" ]]; then
+    echo "Step file missing or unreadable: $STEP_FILE"
+    echo "  (RUNNER_PROMPT was just written by todo-next-step; file should be in docs/TODO/active/steps/.)"
     generate_summary
     exit 0
   fi
