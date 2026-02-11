@@ -9,7 +9,10 @@
 #   --phase ID       Only run steps whose id starts with ID (e.g. P1_03).
 #   --skip_summary   Skip summary generation at the end.
 #   --no-summary     Alias for --skip_summary.
+#   --quiet          Send agent output only to agent_output.log (no stdout). Use for faster/quieter runs; debug with: tail -f docs/TODO/runner/agent_output.log
 #   [ROOT]           Project root (default: current directory).
+#
+# Env: CURSOR_TODO_QUIET=1 same effect as --quiet.
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -35,6 +38,7 @@ STEPS=""
 PHASE=""
 ROOT=""
 NO_SUMMARY=""
+QUIET="${CURSOR_TODO_QUIET:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --once)         ONCE=1; shift ;;
@@ -42,6 +46,7 @@ while [[ $# -gt 0 ]]; do
     --phase)        PHASE="$2"; shift 2 ;;
     --skip_summary) NO_SUMMARY=1; shift ;;
     --no-summary)   NO_SUMMARY=1; shift ;;
+    --quiet)        QUIET=1; shift ;;
     *)              ROOT="$1"; shift ;;
   esac
 done
@@ -114,9 +119,15 @@ generate_summary() {
     if node "$RUNNER_DIR/todo-generate-summary.mjs" --todo "$todo_id"; then
       echo "Running Cursor agent to write summary..."
       set +e
-      agent -p --force --model auto \
-        --output-format stream-json --stream-partial-output \
-        "$(cat "$SUMMARY_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
+      if [[ -n "$QUIET" ]]; then
+        agent -p --force --model auto \
+          --output-format stream-json --stream-partial-output \
+          "$(cat "$SUMMARY_PROMPT")" >> "$AGENT_LOG" 2>&1
+      else
+        agent -p --force --model auto \
+          --output-format stream-json --stream-partial-output \
+          "$(cat "$SUMMARY_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
+      fi
       AGENT_EXIT=$?
       set -e
       if [[ $AGENT_EXIT -ne 0 ]]; then
@@ -184,12 +195,21 @@ while true; do
   track_todo "$STEP_FILE"
 
   echo ""
-  echo "Running Cursor agent for step (streaming to stdout and $AGENT_LOG) ..."
-  set +e
-  agent -p --force --model auto \
-    --output-format stream-json --stream-partial-output \
-    "$(cat "$RUNNER_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
-  set -e
+  if [[ -n "$QUIET" ]]; then
+    echo "Running Cursor agent for step (log only: $AGENT_LOG) ..."
+    set +e
+    agent -p --force --model auto \
+      --output-format stream-json --stream-partial-output \
+      "$(cat "$RUNNER_PROMPT")" >> "$AGENT_LOG" 2>&1
+    set -e
+  else
+    echo "Running Cursor agent for step (streaming to stdout and $AGENT_LOG) ..."
+    set +e
+    agent -p --force --model auto \
+      --output-format stream-json --stream-partial-output \
+      "$(cat "$RUNNER_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
+    set -e
+  fi
   RUNS=$((RUNS + 1))
 
   # Move step to completed so next iteration can run the following step (agent may not have moved it).

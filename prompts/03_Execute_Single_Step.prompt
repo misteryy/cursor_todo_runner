@@ -2,6 +2,11 @@ We are executing this step file: @StepFile
 
 Implement only what this step describes. Do not anticipate or implement future steps.
 
+Output (runner is unattended; transcript is logged for debugging):
+- Be concise: no step-by-step narration, no lengthy explanations.
+- Emit only what is needed: (1) brief summary of what changed, (2) verification result (command run + pass/fail). One short paragraph at the end is enough.
+- Prefer doing over saying: use tools; avoid long preambles or postambles.
+
 Rules:
 - Do not refactor or change code outside the scope of this step.
 - After implementing, run the "How to verify" section for this step (commands, tests, or checks). If the step defines tests or a verification command, run it and report pass/fail.
