@@ -119,7 +119,7 @@ function main() {
   if (phaseFilter) {
     pending = pending.filter((s) => s.id && (s.id === phaseFilter || s.id.startsWith(phaseFilter + ".")));
     if (pending.length === 0) {
-      console.log(`No pending steps matching phase '${phaseFilter}' in docs/TODO/active/steps/.");
+      console.log(`No pending steps matching phase '${phaseFilter}' in docs/TODO/active/steps/.`);
       process.exit(0);
     }
   }
