@@ -119,6 +119,7 @@ while true; do
     2) echo "No pending steps; stopping."
        exit 0 ;;
     1) echo "Step blocked or action required; resolve then re-run."
+       echo "  If you just ran a step, the agent may not have moved it — from project root run: node $RUNNER_DIR/accept-step.mjs (or yarn todo:accept), then re-run."
        exit 1 ;;
     *) echo "todo-next-step.mjs exited with $NEXT_EXIT; stopping."
        exit "$NEXT_EXIT" ;;
@@ -139,6 +140,15 @@ while true; do
     --output-format stream-json --stream-partial-output \
     "$(cat "$RUNNER_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
   RUNS=$((RUNS + 1))
+
+  # Move step to completed so next iteration can run the following step (agent may not have moved it).
+  ACTION_REQUIRED_DIR="$ROOT/docs/TODO/action_required"
+  if [[ ! -d "$ACTION_REQUIRED_DIR" || -z "$(find "$ACTION_REQUIRED_DIR" -maxdepth 1 -name '*.md' -print 2>/dev/null)" ]]; then
+    if node "$RUNNER_DIR/accept-step.mjs" 2>/dev/null; then
+      :
+    fi
+  fi
+
   [[ -n "$ONCE" ]] && exit 0
   if [[ -n "$STEPS" && "$RUNS" -ge "$STEPS" ]]; then
     echo "Reached --steps $STEPS; stopping."
