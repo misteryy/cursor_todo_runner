@@ -73,7 +73,7 @@ save_session() {
   fi
 }
 
-# Generate summary at end of session
+# Generate summary once per run, at exit; one summary file per phase (TODO) touched.
 generate_summary() {
   if [[ -n "$NO_SUMMARY" ]]; then
     echo "Skipping summary generation (--skip_summary)."
@@ -86,9 +86,8 @@ generate_summary() {
 
   save_session
   echo ""
-  echo "=== Generating execution summary ==="
+  echo "=== Generating execution summary (once per run, one per phase touched) ==="
 
-  # Generate summary prompts for each TODO touched
   for todo_id in "${SESSION_TODOS[@]}"; do
     echo "Generating summary for $todo_id..."
     if node "$RUNNER_DIR/todo-generate-summary.mjs" --todo "$todo_id"; then
@@ -136,16 +135,18 @@ while true; do
 
   echo ""
   echo "Running Cursor agent for step (streaming to stdout and $AGENT_LOG) ..."
+  set +e
   agent -p --force --model auto \
     --output-format stream-json --stream-partial-output \
     "$(cat "$RUNNER_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
+  set -e
   RUNS=$((RUNS + 1))
 
   # Move step to completed so next iteration can run the following step (agent may not have moved it).
   ACTION_REQUIRED_DIR="$ROOT/docs/TODO/action_required"
   if [[ ! -d "$ACTION_REQUIRED_DIR" || -z "$(find "$ACTION_REQUIRED_DIR" -maxdepth 1 -name '*.md' -print 2>/dev/null)" ]]; then
-    if node "$RUNNER_DIR/accept-step.mjs" 2>/dev/null; then
-      :
+    if (cd "$ROOT" && node "$RUNNER_DIR/accept-step.mjs"); then
+      echo "Step marked completed (accept-step)."
     fi
   fi
 
