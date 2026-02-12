@@ -1,8 +1,15 @@
 # Cursor TODO Runner
 
-Turn high-level feature definitions into **Agent-first TODOs**, then into **ordered execution steps** that the Cursor CLI runs one-by-one. A thinking model (chat) does design and breakdown; the runner executes steps without scope creep.
+Decompose features into agent-executable steps. A thinking model designs and breaks down tasks with developer input, then the Cursor CLI executes each step sequentially—keeping scope tight and execution predictable.
 
 **Requirements:** Cursor CLI (`agent`), Node, `jq`. Run from the **project root** (the repo that contains `docs/TODO`).
+
+```bash
+node <runner-path>/bin/runner/next-step.mjs [--phase ID]
+bash <runner-path>/bin/runner/run-steps.sh [OPTIONS] [ROOT]
+```
+
+To run from elsewhere, set `CURSOR_TODO_RUNNER_DIR` to the runner install path.
 
 ---
 
@@ -11,38 +18,46 @@ Turn high-level feature definitions into **Agent-first TODOs**, then into **orde
 ```
             ┌──────────────────┐
   Chat      │   Design / MVP   │   Discuss with thinking model, resolve questions
-  manual    └────────┬─────────┘
+  (manual)  └────────┬─────────┘
                      ▼
             ┌──────────────────┐
-  Chat      │ Feature Overview │   Use prompts/01 to break down Design into Phases
-  manual    └────────┬─────────┘   → docs/design/active/*.md
+  Chat      │   Phase/Feature  │   Use prompts/01 to break down Design into Phases
+  (manual)  └────────┬─────────┘   → docs/phase/active/*.md
                      ▼
             ┌──────────────────┐
   Chat      │ Agent-first TODO │   Use prompts/02 to break down Phase into TODOs
-  manual    └────────┬─────────┘   → docs/TODO/active/P2_04_*.md
+  (manual)  └────────┬─────────┘   → docs/TODO/active/P2_04_*.md
                      ▼
             ┌──────────────────┐
   Chat      │  Ordered Steps   │   Use prompts/03 to break down TODO into Steps
-  manual    └────────┬─────────┘   → docs/TODO/active/steps/P2_04.05_*.md
+  (manual)  └────────┬─────────┘   → docs/TODO/active/steps/P2_04.05_*.md
                      ▼
             ┌──────────────────┐
-  CLI       │   Runner Loop    │   Run: bash run-steps.sh [OPTIONS]
-  auto      └────────┬─────────┘   → docs/TODO/completed/
+  CLI       │   TODO Runner    │   Run: bash run-steps.sh [OPTIONS]
+  (auto)    └────────┬─────────┘   → docs/TODO/completed/
                      ▼
                ┌───────────┐
                │  Blocker? │──yes──▶  Back to Chat to resolve
                └───────────┘
 ```
 
-**Templates:** prompts/01 and prompts/02 use `templates/01-feature-overview.template` and `templates/02-agent-first-todo.template` respectively for output format.
+**What you do:** `prompts/01`, `prompts/02`, `prompts/03` are prompt files in this runner repo. In Cursor Chat you run each in order. During these manual phases, you will resolve any open questions before proceeding, so that scope is clear before execution.
+
+- **00** — idea/MVP (your initial input)
+- **01** — design → phases → `docs/phase/active/*.md`
+- **02** — phase → Agent-first TODOs → `docs/TODO/active/*.md`
+- **03** — TODO → ordered steps → `docs/TODO/active/steps/*.md`
+- **Runner** — automated; uses `prompts/04` and the CLI to execute steps → `docs/TODO/completed/`
+
+Prompts 01 and 02 use the templates in `templates/` for their output format.
 
 ---
 
-## Example: docs folder structure
+## Docs layout
 
 ```
 docs/
-├── design/
+├── phase/
 │   ├── active/
 │   │   ├── 00_Development_Roadmap.md
 │   │   ├── 02_Phase2_Map_Integration.md
@@ -74,13 +89,11 @@ docs/
     └── action_required/         ← blockers that pause the runner
 ```
 
-**Naming:**
-- TODOs: `P<phase>_<seq>_<Name>.md` → `P1_01_Flutter_Project_Init.md`
-- Steps: `P<phase>_<seq>.<step>_<slug>.md` → `P1_01.02_flutter_create.md`
+Naming: TODOs `P<phase>_<seq>_<Name>.md`; steps `P<phase>_<seq>.<step>_<slug>.md`.
 
 ---
 
-## Usage examples
+## Usage
 
 ```bash
 # Run all pending steps continuously
@@ -111,6 +124,8 @@ run-steps.sh --model claude-opus-4-5-20250514-thinking --phase P1_01
 run-steps.sh --phase P2_04 --steps 2 --quiet --skip-manual
 ```
 
+See **Parameters** for all options.
+
 ---
 
 ## Parameters
@@ -129,7 +144,7 @@ run-steps.sh --phase P2_04 --steps 2 --quiet --skip-manual
 | `--model MODEL` | Specify model (default: `auto`) |
 | `[ROOT]` | Project root (default: current directory) |
 
-**Env:** `CURSOR_TODO_QUIET=1` — same as `--quiet`
+**Env:** `CURSOR_TODO_QUIET=1` = `--quiet`
 
 ### Supported models
 
@@ -154,37 +169,21 @@ run-steps.sh --phase P2_04 --steps 2 --quiet --skip-manual
 
 ---
 
-## How to use
+## Behavior
 
-**From project root:**
-```bash
-node <runner-path>/bin/runner/next-step.mjs [--phase ID]
-bash <runner-path>/bin/runner/run-steps.sh [OPTIONS] [ROOT]
-```
-
-**Runner elsewhere:** set `CURSOR_TODO_RUNNER_DIR`:
-```bash
-export CURSOR_TODO_RUNNER_DIR=~/.local/share/todo-runner
-bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
-```
+- **Layout:** Runner creates `docs/TODO/active/steps/`, `completed/steps/`, `completed/summaries/`, `runner/`, and `action_required/` if missing.
+- **Ordering:** By "Depends on" and step id prefix.
+- **Blockers:** Failed verification → file in `action_required/`; runner pauses until resolved.
+- **Manual testing:** Manual steps write instructions to `action_required/`; use `--skip-manual` for unattended runs.
+- **Execute prompt:** `prompts/04-execute-single-step.prompt`; output level via `prompts/fragments/output-step-only.txt` or `output-zero.txt` (`--quiet`).
 
 ---
 
-## Other details
-
-- **Layout:** Runner creates `docs/TODO/active/steps/`, `docs/TODO/completed/steps/`, `docs/TODO/completed/summaries/`, `docs/TODO/runner/`, and `docs/TODO/action_required/` if missing.
-- **Step ordering:** Runner uses "Depends on" field and step id prefix for ordering.
-- **Blockers:** Failed verification creates a file in `action_required/`. Runner pauses until removed.
-- **Manual testing:** Steps requiring manual testing create files in `action_required/` with instructions. Use `--skip-manual` for unattended runs.
-- **Prompts:** Execute prompt is `prompts/04-execute-single-step.prompt`. Output level controlled by `prompts/fragments/output-step-only.txt` (default) or `output-zero.txt` (`--quiet`).
-
----
-
-## Runner project structure
+## Runner layout
 
 | Path | Purpose |
 |------|---------|
-| `bin/runner/` | Main workflow: `run-steps.sh`, `next-step.mjs`, `accept-step.mjs`, `on-phase-done.mjs` |
-| `bin/debug/` | Debug helpers: `debug-agent.mjs`, `debug-runner.mjs`, `debug-output.mjs` |
-| `prompts/` | Cursor prompts (01–04) + `fragments/` for output levels |
+| `bin/runner/` | `run-steps.sh`, `next-step.mjs`, `accept-step.mjs`, `on-phase-done.mjs` |
+| `bin/debug/` | `debug-agent.mjs`, `debug-runner.mjs`, `debug-output.mjs` |
+| `prompts/` | Prompts 01–04 + `fragments/` for output levels |
 | `templates/` | Feature overview and agent-first TODO templates |

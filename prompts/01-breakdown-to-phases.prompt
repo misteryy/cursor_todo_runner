@@ -13,6 +13,6 @@ Your task:
 Output:
 - One Feature Overview per phase (typically 3–8 phases for a full project)
 - Each overview standalone and usable for TODO generation
-- Store each overview in docs/design/active/
+- Store each overview in docs/phase/active/
 - Filename pattern: {number:2d}_Phase{N}_{Short_Name}.md
   Examples: 01_Phase1_Foundation_And_Design_System.md, 02_Phase2_Map_Integration.md

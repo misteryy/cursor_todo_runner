@@ -2,7 +2,10 @@
 # Keeps the runner toolkit and its generated files out of version control.
 # Adjust the first line if you keep the runner in a different path.
 
+
 cursor_todo_runner/
-docs/TODO/runner/NEXT.md
-docs/TODO/runner/RUNNER_PROMPT.txt
-docs/TODO/runner/agent_output.log
+docs/TODO/runner/
+docs/TODO/action_required/
+
+# The entire runner docs folder
+# docs/TODO/

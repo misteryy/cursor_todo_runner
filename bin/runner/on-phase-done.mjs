@@ -3,7 +3,7 @@
  * Run when the runner loop exits with "no pending steps" (phase/TODO finished).
  * 1. Moves any Agent-First TODO from docs/TODO/active/ to docs/TODO/completed/ if still there.
  * 2. After last TODO of a phase is processed (no remaining in backlog or active, excluding cancelled),
- *    moves the design doc from docs/design/active/ to docs/design/completed/.
+ *    moves the phase doc from docs/phase/active/ to docs/phase/completed/.
  * 3. Builds execution-summary prompt with context (TodoFile, CompletedSteps, etc.) and writes
  *    docs/TODO/runner/RUNNER_SUMMARY_PROMPT.txt for the agent to run once.
  * Summary is generated only once per finished phase, not per step.
@@ -45,8 +45,8 @@ const COMPLETED_STEPS_DIR = path.join(COMPLETED_DIR, "steps");
 const SUMMARIES_DIR = path.join(COMPLETED_DIR, "summaries");
 const RUNNER_DIR = path.join(TODO_DIR, "runner");
 const SUMMARY_PROMPT_OUT = path.join(RUNNER_DIR, "RUNNER_SUMMARY_PROMPT.txt");
-const DESIGN_ACTIVE_DIR = path.join(ROOT, "docs", "design", "active");
-const DESIGN_COMPLETED_DIR = path.join(ROOT, "docs", "design", "completed");
+const PHASE_ACTIVE_DIR = path.join(ROOT, "docs", "phase", "active");
+const PHASE_COMPLETED_DIR = path.join(ROOT, "docs", "phase", "completed");
 
 function stepIdFromFilename(name) {
   const match = name.match(/^(P\d+_\d+\.\d+)_/);
@@ -108,26 +108,26 @@ function hasRemainingTodosForPhase(phase) {
   return backlogTodos.length > 0 || activeTodos.length > 0;
 }
 
-/** Move design doc for a phase from docs/design/active/ to docs/design/completed/ if it exists */
-function moveDesignDocToCompleted(phase) {
-  if (!phase || !fs.existsSync(DESIGN_ACTIVE_DIR)) return;
+/** Move phase doc for a phase from docs/phase/active/ to docs/phase/completed/ if it exists */
+function movePhaseDocToCompleted(phase) {
+  if (!phase || !fs.existsSync(PHASE_ACTIVE_DIR)) return;
 
-  const designFiles = fs.readdirSync(DESIGN_ACTIVE_DIR).filter((f) => {
+  const phaseFiles = fs.readdirSync(PHASE_ACTIVE_DIR).filter((f) => {
     if (!f.endsWith(".md")) return false;
     // Match files that start with the phase prefix
     return f.startsWith(phase + "_") || f.startsWith(phase + "-") || f === phase + ".md";
   });
 
-  if (designFiles.length === 0) return;
+  if (phaseFiles.length === 0) return;
 
-  fs.mkdirSync(DESIGN_COMPLETED_DIR, { recursive: true });
-  for (const file of designFiles) {
-    const src = path.join(DESIGN_ACTIVE_DIR, file);
+  fs.mkdirSync(PHASE_COMPLETED_DIR, { recursive: true });
+  for (const file of phaseFiles) {
+    const src = path.join(PHASE_ACTIVE_DIR, file);
     // Skip if it's a directory
     if (fs.statSync(src).isDirectory()) continue;
-    const dest = path.join(DESIGN_COMPLETED_DIR, file);
+    const dest = path.join(PHASE_COMPLETED_DIR, file);
     fs.renameSync(src, dest);
-    console.log("Moved design doc to completed:", file);
+    console.log("Moved phase doc to completed:", file);
   }
 }
 
@@ -178,10 +178,10 @@ function main() {
   }
 
   // After moving TODO to completed, check if this was the last non-cancelled TODO for the phase
-  // If so, move the design doc to completed
+  // If so, move the phase doc to completed
   const phase = phaseFilter || phaseFromTodoFilename(todo.basename);
   if (phase && !hasRemainingTodosForPhase(phase)) {
-    moveDesignDocToCompleted(phase);
+    movePhaseDocToCompleted(phase);
   }
 
   if (noSummary) {
