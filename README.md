@@ -12,7 +12,7 @@ Turn high-level feature definitions into **Agent-first TODOs**, then into **orde
 |------|--------|
 | `bin/runner/` | Main workflow: `run-steps.sh`, `next-step.mjs`, `accept-step.mjs`, `on-phase-done.mjs` |
 | `bin/debug/` | Debug helpers (prefix `debug-`): `debug-agent.mjs`, `debug-runner.mjs`, `debug-output.mjs` |
-| `prompts/` | Cursor prompts (01–04): breakdown, generate steps, execute single step, execution summary (`04-execution-summary.prompt`) |
+| `prompts/` | Cursor prompts (01–04): breakdown, generate steps, execute single step (uses `fragments/` for output level), execution summary. `fragments/output-minimal.txt` and `output-zero.txt` are injected into the execute prompt via `@OutputInstruction`. |
 | `templates/` | Feature overview and agent-first TODO templates: `01-feature-overview.template`, `02-agent-first-todo.template` |
 
 ---
@@ -69,7 +69,7 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 - **Layout:** Project needs `docs/TODO/active/` (TODOs + `steps/`), `docs/TODO/completed/` (and `completed/summaries/` for execution summaries), `docs/TODO/runner/`, `docs/TODO/action_required/`. Add `gitignore.example` contents to your `.gitignore`.
 - **Step files:** In `docs/TODO/active/steps/`, names like `P1_03.1_slug.md`. Runner uses "Depends on" and step id prefix (e.g. `P1_03`) for ordering.
 - **Blockers:** If the agent fails verification, it writes a file to `docs/TODO/action_required/`. The runner stops until that file is removed. Then run `node …/bin/runner/accept-step.mjs` if needed and re-run.
-- **Prompt source:** Execute prompt is `prompts/03-execute-single-step.prompt`; `next-step.mjs` writes `NEXT.md` and `RUNNER_PROMPT.txt` with the step file @-mentioned. When not using `--quiet`, run-steps.sh echoes NEXT.md and the start of RUNNER_PROMPT.txt before each agent run for debugging.
+- **Prompt source:** Execute prompt is `prompts/03-execute-single-step.prompt` (placeholder `@OutputInstruction` is replaced by `prompts/fragments/output-minimal.txt` or `output-zero.txt` when `--quiet`). `next-step.mjs` writes `NEXT.md` and `RUNNER_PROMPT.txt`. When not using `--quiet`, run-steps.sh echoes NEXT.md and the start of RUNNER_PROMPT.txt before each agent run for debugging.
 
 ---
 

@@ -74,6 +74,7 @@ fi
 
 NEXT_ARGS=()
 [[ -n "$PHASE" ]] && NEXT_ARGS+=(--phase "$PHASE")
+[[ -n "$QUIET" ]] && NEXT_ARGS+=(--quiet)
 
 AGENT_LOG="$ROOT/docs/TODO/runner/agent_output.log"
 RUNNER_DIR_FILES="$ROOT/docs/TODO/runner"

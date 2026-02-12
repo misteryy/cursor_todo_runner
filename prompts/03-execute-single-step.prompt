@@ -2,10 +2,7 @@ We are executing this step file: @StepFile
 
 Implement only what this step describes. Do not anticipate or implement future steps.
 
-Output (runner is unattended; minimize tokens and time — do not stream long replies):
-- Emit only the minimum: (1) one-line summary of what changed, (2) verification command run and pass/fail. No step-by-step narration, no explanations, no preambles or postambles.
-- Prefer doing over saying: use tools; do not output progress or reasoning unless it is essential.
-- Keep your final message to a few sentences at most. Lengthy output wastes time and tokens.
+@OutputInstruction
 
 Rules:
 - Do not refactor or change code outside the scope of this step.

@@ -1,0 +1,1 @@
+Output: Do not produce any chat or text output. Do not write a summary or final message. Perform the step (implement, then run verification). If verification fails, create the action_required file as specified in the rules. The runner does not read your reply; zero output saves time and tokens.

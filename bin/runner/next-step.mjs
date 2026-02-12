@@ -11,6 +11,7 @@
  *
  * Options:
  *   --phase ID   Only consider steps whose id starts with ID (e.g. P1_03 for P1_03.1, P1_03.2).
+ *   --quiet      Use zero-output fragment for the execute prompt (prompts/fragments/output-zero.txt).
  */
 
 import fs from "fs";
@@ -20,20 +21,24 @@ import { fileURLToPath } from "url";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUNNER_ROOT = path.join(SCRIPT_DIR, "..", "..");
 const EXECUTE_STEP_PROMPT_PATH = path.join(RUNNER_ROOT, "prompts", "03-execute-single-step.prompt");
+const FRAGMENTS_DIR = path.join(RUNNER_ROOT, "prompts", "fragments");
 
 function parseArgs() {
   const args = process.argv.slice(2);
   let phase = null;
+  let quiet = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--phase" && args[i + 1]) {
       phase = args[i + 1];
       i++;
+    } else if (args[i] === "--quiet") {
+      quiet = true;
     }
   }
-  return { phase };
+  return { phase, quiet };
 }
 
-const { phase: phaseFilter } = parseArgs();
+const { phase: phaseFilter, quiet: useZeroOutput } = parseArgs();
 const ROOT = process.cwd();
 const TODO_DIR = path.join(ROOT, "docs", "TODO");
 const ACTIVE_STEPS_DIR = path.join(TODO_DIR, "active", "steps");
@@ -44,11 +49,19 @@ const NEXT_FILE = path.join(RUNNER_DIR, "NEXT.md");
 const PROMPT_FILE = path.join(RUNNER_DIR, "RUNNER_PROMPT.txt");
 
 function loadExecuteStepPrompt(stepPath) {
-  const template = fs.readFileSync(EXECUTE_STEP_PROMPT_PATH, "utf8");
+  let template = fs.readFileSync(EXECUTE_STEP_PROMPT_PATH, "utf8");
   if (!template.includes("@StepFile")) {
     throw new Error(`${EXECUTE_STEP_PROMPT_PATH} must contain @StepFile placeholder`);
   }
-  return template.replace("@StepFile", "@" + stepPath);
+  template = template.replace("@StepFile", "@" + stepPath);
+  const fragmentName = useZeroOutput ? "output-zero.txt" : "output-minimal.txt";
+  const fragmentPath = path.join(FRAGMENTS_DIR, fragmentName);
+  if (!template.includes("@OutputInstruction")) {
+    throw new Error(`${EXECUTE_STEP_PROMPT_PATH} must contain @OutputInstruction placeholder`);
+  }
+  const outputFragment = fs.readFileSync(fragmentPath, "utf8").trim();
+  template = template.replace("@OutputInstruction", outputFragment);
+  return template;
 }
 
 const STEP_ID_REGEX = /P\d+_\d+\.\d+/g;
