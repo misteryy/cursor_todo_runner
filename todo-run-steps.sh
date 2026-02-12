@@ -166,15 +166,18 @@ while true; do
        exit "$NEXT_EXIT" ;;
   esac
   # Resolve step file path from NEXT.md (single source of truth written by todo-next-step).
-  # Using NEXT.md avoids depending on RUNNER_PROMPT format and avoids sed failure if that file
-  # were missing/unreadable or had encoding issues; no race/lock expected (node exits before we read).
+  # Using NEXT.md avoids depending on RUNNER_PROMPT format. Parsing is done with set +e so
+  # sed/head never trigger set -e and cause a spurious exit 1 (e.g. from pipeline or missing file).
   if [[ ! -r "$NEXT_FILE" ]]; then
     echo "NEXT.md missing or unreadable: $NEXT_FILE (todo-next-step should have written it); stopping."
     generate_summary
     exit 1
   fi
-  STEP_FILE="$ROOT/$(sed -n 's/.*\*\*Step file:\*\* `\([^`]*\)`.*/\1/p' "$NEXT_FILE" | head -1)"
-  if [[ -z "$STEP_FILE" || "$STEP_FILE" == "$ROOT/" ]]; then
+  set +e
+  STEP_RAW=$(sed -n 's/.*\*\*Step file:\*\* `\([^`]*\)`.*/\1/p' "$NEXT_FILE" 2>/dev/null | head -1 | tr -d '\r')
+  set -e
+  STEP_FILE="$ROOT/${STEP_RAW:-}"
+  if [[ -z "$STEP_RAW" || -z "$STEP_FILE" || "$STEP_FILE" == "$ROOT/" || "$STEP_FILE" == "${ROOT}/" ]]; then
     echo "Step file path empty (NEXT.md may not match expected pattern); stopping to avoid loop."
     generate_summary
     exit 0
@@ -212,12 +215,18 @@ while true; do
   fi
   RUNS=$((RUNS + 1))
 
-  # Move step to completed so next iteration can run the following step (agent may not have moved it).
+  # Runner owns step-file moves: move step to completed so next iteration can run the following step.
+  # (We do not rely on the agent to move the file.)
   ACTION_REQUIRED_DIR="$ROOT/docs/TODO/action_required"
-  if [[ ! -d "$ACTION_REQUIRED_DIR" || -z "$(find "$ACTION_REQUIRED_DIR" -maxdepth 1 -name '*.md' -print 2>/dev/null)" ]]; then
-    if (cd "$ROOT" && node "$RUNNER_DIR/accept-step.mjs"); then
-      echo "Step marked completed (accept-step)."
-    fi
+  HAS_ACTION_FILES=""
+  if [[ -d "$ACTION_REQUIRED_DIR" ]]; then
+    HAS_ACTION_FILES=$(find "$ACTION_REQUIRED_DIR" -maxdepth 1 -name '*.md' -print 2>/dev/null || true)
+  fi
+  if [[ -z "$HAS_ACTION_FILES" && -f "$STEP_FILE" ]]; then
+    COMPLETED_STEPS_DIR="$ROOT/docs/TODO/completed/steps"
+    mkdir -p "$COMPLETED_STEPS_DIR"
+    mv "$STEP_FILE" "$COMPLETED_STEPS_DIR/$(basename "$STEP_FILE")"
+    echo "Step marked completed (runner)."
   fi
 
   if [[ -n "$ONCE" ]]; then

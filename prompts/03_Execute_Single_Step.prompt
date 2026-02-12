@@ -12,13 +12,13 @@ Rules:
 - After implementing, run the "How to verify" section for this step (commands, tests, or checks). If the step defines tests or a verification command, run it and report pass/fail.
 - Stop when this step is complete and verified.
 - Summarize: (1) what changed, (2) verification result (what you ran and outcome). Do not create or edit files in docs/TODO/summaries/ — the runner generates one summary per phase at the end of the run.
+- Do not move or rename the step file or any file in docs/TODO/active/steps/ or docs/TODO/completed/steps/ — the runner marks the step complete after you finish.
+- If this step file instructs you to move the parent Agent-First TODO to completed (e.g. "last step" instruction), do that: mv the TODO file from docs/TODO/active/ to docs/TODO/completed/, same filename.
 
 On successful completion:
-- Move this step file from docs/TODO/active/steps/ to docs/TODO/completed/steps/ using mv (same filename).
-- If this step file instructs you to move the parent Agent-First TODO to completed (e.g. "last step" instruction), do that as well: mv the TODO from docs/TODO/active/ to docs/TODO/completed/, same filename.
+- The runner will move this step file to completed automatically. You do nothing in docs/TODO for success.
 
 When verification does NOT pass (e.g. command fails, environment missing, tests fail):
-- Do NOT move the step file.
 - Create exactly one markdown file in docs/TODO/action_required/ describing what failed and what the user must do to fix it. Use a clear filename, e.g. step_P1_01.01_environment_verification.md or step_<stepId>_blocked.md. The runner will not run further steps until this file is removed after the user resolves the issue.
 
 Do not commit to git.
