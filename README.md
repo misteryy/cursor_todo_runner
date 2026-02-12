@@ -50,7 +50,7 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 | `--steps N` | Run at most N steps, then exit. |
 | `--phase ID` | Only run steps whose id starts with `ID` (e.g. `P1_03`). |
 | `--no-summary` | When phase finishes, do not generate execution summary (TODO is still moved to completed). |
-| `--quiet` | Mute agent stdout (output discarded unless `--debug`). Summary is skipped. |
+| `--quiet` | Mute agent stdout (output discarded unless `--debug`). Summary still runs unless you pass `--no-summary`. |
 | `--debug` | Log agent output to `docs/TODO/runner/agent_output.log` (and to stdout when not `--quiet`). Use with `debug-agent.mjs` etc. When not set, no log file is written. |
 | `[ROOT]` | Project root; default is current directory. |
 
@@ -66,7 +66,7 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 
 ## Other details
 
-- **Layout:** Project needs `docs/TODO/active/` (TODOs + `steps/`), `docs/TODO/completed/` (and `completed/summaries/` for execution summaries), `docs/TODO/runner/`, `docs/TODO/action_required/`. Add `gitignore.example` contents to your `.gitignore`.
+- **Layout:** Runner creates `docs/TODO/active/steps/`, `docs/TODO/completed/steps/`, `docs/TODO/completed/summaries/`, `docs/TODO/runner/`, and `docs/TODO/action_required/` if missing. Add `gitignore.example` contents to your `.gitignore`.
 - **Step files:** In `docs/TODO/active/steps/`, names like `P1_03.1_slug.md`. Runner uses "Depends on" and step id prefix (e.g. `P1_03`) for ordering.
 - **Blockers:** If the agent fails verification, it writes a file to `docs/TODO/action_required/`. The runner stops until that file is removed. Then run `node …/bin/runner/accept-step.mjs` if needed and re-run.
 - **Prompt source:** Execute prompt is `prompts/03-execute-single-step.prompt` (placeholder `@OutputInstruction` is replaced by `prompts/fragments/output-minimal.txt` or `output-zero.txt` when `--quiet`). `next-step.mjs` writes `NEXT.md` and `RUNNER_PROMPT.txt`. When not using `--quiet`, run-steps.sh echoes NEXT.md and the start of RUNNER_PROMPT.txt before each agent run for debugging.

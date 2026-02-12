@@ -72,6 +72,13 @@ if ! command -v agent &>/dev/null; then
   exit 127
 fi
 
+# Ensure full TODO layout exists (runner creates dirs it writes to; create the rest here)
+mkdir -p "$ROOT/docs/TODO/active/steps"
+mkdir -p "$ROOT/docs/TODO/completed/steps"
+mkdir -p "$ROOT/docs/TODO/completed/summaries"
+mkdir -p "$ROOT/docs/TODO/runner"
+mkdir -p "$ROOT/docs/TODO/action_required"
+
 NEXT_ARGS=()
 [[ -n "$PHASE" ]] && NEXT_ARGS+=(--phase "$PHASE")
 [[ -n "$QUIET" ]] && NEXT_ARGS+=(--quiet)
