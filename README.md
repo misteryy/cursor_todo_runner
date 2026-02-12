@@ -10,9 +10,9 @@ Turn high-level feature definitions into **Agent-first TODOs**, then into **orde
 
 | Path | Purpose |
 |------|--------|
-| `bin/runner/` | Main workflow: `run-steps.sh`, `next-step.mjs`, `accept-step.mjs`, `generate-summary.mjs` |
+| `bin/runner/` | Main workflow: `run-steps.sh`, `next-step.mjs`, `accept-step.mjs` |
 | `bin/debug/` | Debug helpers (prefix `debug-`): `debug-agent.mjs`, `debug-runner.mjs`, `debug-output.mjs` |
-| `prompts/` | Cursor prompts (01–04), kebab-case: `01-breakdown-high-level-plan.prompt`, `03-execute-single-step.prompt`, etc. |
+| `prompts/` | Cursor prompts (01–03), kebab-case: `01-breakdown-high-level-plan.prompt`, `03-execute-single-step.prompt`, etc. |
 | `templates/` | Feature overview and agent-first TODO templates: `01-feature-overview.template`, `02-agent-first-todo.template` |
 
 ---
@@ -47,8 +47,7 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 | `--once` | Run at most one step, then exit. |
 | `--steps N` | Run at most N steps, then exit. |
 | `--phase ID` | Only run steps whose id starts with `ID` (e.g. `P1_03`). |
-| `--skip_summary` / `--no-summary` | Skip summary generation at the end. |
-| `--quiet` | Agent output only to `docs/TODO/runner/agent_output.log` (no stdout). Debug with `tail -f docs/TODO/runner/agent_output.log`. |
+| `--quiet` | Agent output only to `docs/TODO/runner/agent_output.log` (no stdout). Debug with `tail -f docs/TODO/runner/agent_output.log`. When not set, NEXT.md and RUNNER_PROMPT.txt (first lines) are echoed before each step. |
 | `[ROOT]` | Project root; default is current directory. |
 
 **Env:** `CURSOR_TODO_QUIET=1` — same as `--quiet`.
@@ -59,24 +58,14 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 |--------|-------------|
 | `--phase ID` | Only consider steps whose id starts with `ID`. |
 
-### generate-summary.mjs
-
-| Option | Description |
-|--------|-------------|
-| `--todo ID` | Summary for one TODO (e.g. `P1_02`). |
-| `--session` | Summaries for all TODOs touched this session. |
-| `--outcome TYPE` | Force outcome: `SUCCESS`, `PARTIAL`, `BLOCKED`. |
-| `--dry-run` | Show what would be generated, no writes. |
-
 ---
 
 ## Other details
 
-- **Layout:** Project needs `docs/TODO/active/` (TODOs + `steps/`), `docs/TODO/completed/`, `docs/TODO/summaries/`, `docs/TODO/runner/`, `docs/TODO/action_required/`. Add `gitignore.example` contents to your `.gitignore`.
+- **Layout:** Project needs `docs/TODO/active/` (TODOs + `steps/`), `docs/TODO/completed/`, `docs/TODO/runner/`, `docs/TODO/action_required/`. Add `gitignore.example` contents to your `.gitignore`.
 - **Step files:** In `docs/TODO/active/steps/`, names like `P1_03.1_slug.md`. Runner uses "Depends on" and step id prefix (e.g. `P1_03`) for ordering.
 - **Blockers:** If the agent fails verification, it writes a file to `docs/TODO/action_required/`. The runner stops until that file is removed. Then run `node …/bin/runner/accept-step.mjs` if needed and re-run.
-- **Summaries:** Generated automatically at end of run (or on interrupt). One file per TODO touched, in `docs/TODO/summaries/`.
-- **Prompt source:** Execute prompt is `prompts/03-execute-single-step.prompt`; `next-step.mjs` writes `RUNNER_PROMPT.txt` with the step file @-mentioned.
+- **Prompt source:** Execute prompt is `prompts/03-execute-single-step.prompt`; `next-step.mjs` writes `NEXT.md` and `RUNNER_PROMPT.txt` with the step file @-mentioned. When not using `--quiet`, run-steps.sh echoes NEXT.md and the start of RUNNER_PROMPT.txt before each agent run for debugging.
 
 ---
 
@@ -114,13 +103,6 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 │  On success: accept-step.mjs moves step to completed/                        │
 │  Loop until no pending steps or --once / --steps limit                       │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                        │
-                                        ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  PHASE 5: Summary (automatic)                                                 │
-│  generate-summary.mjs (prompt 04) → docs/TODO/summaries/*.summary.md         │
-│  One per TODO touched; run at exit (or skip with --skip_summary)             │
-└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Repo layout:** `bin/runner/` (run-steps.sh, next-step.mjs, accept-step.mjs, generate-summary.mjs), `bin/debug/` (debug-agent.mjs, debug-runner.mjs, debug-output.mjs), `templates/`, `prompts/`.
+**Repo layout:** `bin/runner/` (run-steps.sh, next-step.mjs, accept-step.mjs), `bin/debug/` (debug-agent.mjs, debug-runner.mjs, debug-output.mjs), `templates/`, `prompts/`.

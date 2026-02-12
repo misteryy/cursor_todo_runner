@@ -5,6 +5,4 @@
 cursor_todo_runner/
 docs/TODO/runner/NEXT.md
 docs/TODO/runner/RUNNER_PROMPT.txt
-docs/TODO/runner/SUMMARY_PROMPT.txt
 docs/TODO/runner/agent_output.log
-docs/TODO/runner/session_todos.json

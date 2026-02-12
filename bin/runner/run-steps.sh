@@ -7,8 +7,6 @@
 #   --once           Run at most one step, then exit.
 #   --steps N        Run at most N steps, then exit.
 #   --phase ID       Only run steps whose id starts with ID (e.g. P1_03).
-#   --skip_summary   Skip summary generation at the end.
-#   --no-summary     Alias for --skip_summary.
 #   --quiet          Send agent output only to agent_output.log (no stdout). Use for faster/quieter runs; debug with: tail -f docs/TODO/runner/agent_output.log
 #   [ROOT]           Project root (default: current directory).
 #
@@ -17,7 +15,7 @@
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Use CURSOR_TODO_RUNNER_DIR if set (prefer bin/ then root); else use script dir if complete
-REQUIRED="accept-step.mjs next-step.mjs generate-summary.mjs"
+REQUIRED="accept-step.mjs next-step.mjs"
 if [[ -n "${CURSOR_TODO_RUNNER_DIR:-}" ]]; then
   all_ok=1
   for f in $REQUIRED; do [[ -f "${CURSOR_TODO_RUNNER_DIR}/bin/runner/$f" ]] || all_ok=0; done
@@ -47,15 +45,12 @@ ONCE=""
 STEPS=""
 PHASE=""
 ROOT=""
-NO_SUMMARY=""
 QUIET="${CURSOR_TODO_QUIET:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --once)         ONCE=1; shift ;;
     --steps)        STEPS="$2"; shift 2 ;;
     --phase)        PHASE="$2"; shift 2 ;;
-    --skip_summary) NO_SUMMARY=1; shift ;;
-    --no-summary)   NO_SUMMARY=1; shift ;;
     --quiet)        QUIET=1; shift ;;
     *)              ROOT="$1"; shift ;;
   esac
@@ -77,87 +72,8 @@ NEXT_ARGS=()
 AGENT_LOG="$ROOT/docs/TODO/runner/agent_output.log"
 RUNNER_DIR_FILES="$ROOT/docs/TODO/runner"
 RUNNER_PROMPT="$RUNNER_DIR_FILES/RUNNER_PROMPT.txt"
-SUMMARY_PROMPT="$RUNNER_DIR_FILES/SUMMARY_PROMPT.txt"
 NEXT_FILE="$RUNNER_DIR_FILES/NEXT.md"
-SESSION_FILE="$ROOT/docs/TODO/runner/session_todos.json"
 RUNS=0
-SESSION_TODOS=()
-SUMMARY_DONE=""  # Set to 1 when summary has been run (so trap does not run it again)
-
-# Track TODO IDs touched in this session
-track_todo() {
-  local step_file="$1"
-  # Extract TODO ID from step filename (P1_02 from P1_02.03_something.md)
-  local todo_id
-  todo_id=$(basename "$step_file" | sed -n 's/^\(P[0-9]*_[0-9]*\)\.[0-9]*_.*/\1/p')
-  if [[ -n "$todo_id" ]]; then
-    # Add to array if not already present
-    local found=0
-    for t in "${SESSION_TODOS[@]}"; do
-      [[ "$t" == "$todo_id" ]] && found=1 && break
-    done
-    [[ $found -eq 0 ]] && SESSION_TODOS+=("$todo_id")
-  fi
-}
-
-# Save session TODOs to JSON file
-save_session() {
-  if [[ ${#SESSION_TODOS[@]} -gt 0 ]]; then
-    local json_array
-    json_array=$(printf '%s\n' "${SESSION_TODOS[@]}" | jq -R . | jq -s .)
-    echo "{\"todos\": $json_array, \"timestamp\": \"$(date -Iseconds)\"}" > "$SESSION_FILE"
-  fi
-}
-
-# Generate summary once per run, at exit; one summary file per phase (TODO) touched.
-generate_summary() {
-  if [[ -n "$NO_SUMMARY" ]]; then
-    echo "Skipping summary generation (--skip_summary)."
-    return
-  fi
-  if [[ ${#SESSION_TODOS[@]} -eq 0 ]]; then
-    echo "No TODOs touched in this session; skipping summary."
-    return
-  fi
-
-  save_session
-  echo ""
-  echo "=== Generating execution summary (once per run, one per phase touched) ==="
-
-  for todo_id in "${SESSION_TODOS[@]}"; do
-    echo "Generating summary for $todo_id..."
-    if node "$RUNNER_DIR/generate-summary.mjs" --todo "$todo_id"; then
-      echo "Running Cursor agent to write summary..."
-      # Subshell so Cursor CLI exit code never becomes script exit (CLI can exit 1 despite model success).
-      set +e
-      if [[ -n "$QUIET" ]]; then
-        ( agent -p --force --model auto \
-          --output-format stream-json --stream-partial-output \
-          "$(cat "$SUMMARY_PROMPT")" >> "$AGENT_LOG" 2>&1 ) || true
-      else
-        ( agent -p --force --model auto \
-          --output-format stream-json --stream-partial-output \
-          "$(cat "$SUMMARY_PROMPT")" 2>&1 | tee -a "$AGENT_LOG" ) || true
-      fi
-      set -e
-      echo "Summary agent finished. Check $AGENT_LOG for output."
-    fi
-  done
-
-  # Clean up session file
-  rm -f "$SESSION_FILE"
-  SUMMARY_DONE=1
-}
-
-# Trap: only run summary on unexpected exit (e.g. interrupt, early exit). Normal end-of-run exits call generate_summary explicitly first.
-cleanup() {
-  local exit_code=$?
-  if [[ -z "${SUMMARY_DONE:-}" ]]; then
-    generate_summary
-  fi
-  exit $exit_code
-}
-trap cleanup EXIT
 
 while true; do
   node "$RUNNER_DIR/next-step.mjs" "${NEXT_ARGS[@]}"
@@ -165,7 +81,6 @@ while true; do
   case "$NEXT_EXIT" in
     0) ;; # Next step written; proceed to run agent
     2) echo "No pending steps; stopping."
-       generate_summary
        exit 0 ;;
     1) echo "Step blocked or action required; resolve then re-run."
        echo "  If you just ran a step, the agent may not have moved it — from project root run: node $RUNNER_DIR/accept-step.mjs (or yarn todo:accept), then re-run."
@@ -178,7 +93,6 @@ while true; do
   # sed/head never trigger set -e and cause a spurious exit 1 (e.g. from pipeline or missing file).
   if [[ ! -r "$NEXT_FILE" ]]; then
     echo "NEXT.md missing or unreadable: $NEXT_FILE (next-step should have written it); stopping."
-    generate_summary
     exit 1
   fi
   set +e
@@ -187,25 +101,29 @@ while true; do
   STEP_FILE="$ROOT/${STEP_RAW:-}"
   if [[ -z "$STEP_RAW" || -z "$STEP_FILE" || "$STEP_FILE" == "$ROOT/" || "$STEP_FILE" == "${ROOT}/" ]]; then
     echo "Step file path empty (NEXT.md may not match expected pattern); stopping to avoid loop."
-    generate_summary
     exit 0
   fi
   if [[ ! -f "$STEP_FILE" ]]; then
     echo "Step file missing or unreadable: $STEP_FILE"
     echo "  (NEXT.md was just written by next-step; file should be in docs/TODO/active/steps/.)"
-    generate_summary
     exit 0
   fi
   if [[ ! -r "$RUNNER_PROMPT" ]]; then
     echo "RUNNER_PROMPT missing or unreadable: $RUNNER_PROMPT (needed for agent prompt); stopping."
-    generate_summary
     exit 1
   fi
 
-  # Track this TODO for summary generation
-  track_todo "$STEP_FILE"
+  # Debug: show what NEXT.md and RUNNER_PROMPT contain (when not --quiet)
+  if [[ -z "$QUIET" ]]; then
+    echo ""
+    echo "--- NEXT.md ($NEXT_FILE) ---"
+    head -30 "$NEXT_FILE"
+    echo "--- RUNNER_PROMPT ($RUNNER_PROMPT, first 15 lines) ---"
+    head -15 "$RUNNER_PROMPT"
+    echo "---"
+    echo ""
+  fi
 
-  echo ""
   if [[ -n "$QUIET" ]]; then
     echo "Running Cursor agent for step (log only: $AGENT_LOG) ..."
     set +e
@@ -244,12 +162,10 @@ while true; do
   fi
 
   if [[ -n "$ONCE" ]]; then
-    generate_summary
     exit 0
   fi
   if [[ -n "$STEPS" && "$RUNS" -ge "$STEPS" ]]; then
     echo "Reached --steps $STEPS; stopping."
-    generate_summary
     exit 0
   fi
 done
