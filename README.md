@@ -9,33 +9,32 @@ Turn high-level feature definitions into **Agent-first TODOs**, then into **orde
 ## Process
 
 ```
-  MODE        STEP                     HOW
-────────────────────────────────────────────────────────────────────────────────
-
             ┌──────────────────┐
-  Chat      │   Design / MVP   │       THINKING MODEL, RESOLVE QUESTIONS
+  Chat      │   Design / MVP   │   Discuss with thinking model, resolve questions
   manual    └────────┬─────────┘
                      ▼
-            ┌──────────────────┐       BREAKDOWN TO PHASES, RESOLVE QUESTIONS
-  Chat      │ Feature Overview │       @templates/01-feature-overview.template
-  manual    └────────┬─────────┘       → docs/design/active/*.md
+            ┌──────────────────┐
+  Chat      │ Feature Overview │   Use prompts/01 to break down Design into Phases
+  manual    └────────┬─────────┘   → docs/design/active/*.md
                      ▼
-            ┌──────────────────┐       BREAKDOWN TO TODOs, RESOLVE QUESTIONS
-  Chat      │ Agent-first TODO │       @prompts/01-breakdown-to-todos.prompt
-  manual    └────────┬─────────┘       → docs/TODO/active/P2_04_*.md
+            ┌──────────────────┐
+  Chat      │ Agent-first TODO │   Use prompts/02 to break down Phase into TODOs
+  manual    └────────┬─────────┘   → docs/TODO/active/P2_04_*.md
                      ▼
-            ┌──────────────────┐       BREAKDOWN TO EXECUTION STEPS
-  Chat      │  Ordered Steps   │       @prompts/02-generate-execution-steps.prompt
-  manual    └────────┬─────────┘       → docs/TODO/active/steps/P2_04.05_*.md
+            ┌──────────────────┐
+  Chat      │  Ordered Steps   │   Use prompts/03 to break down TODO into Steps
+  manual    └────────┬─────────┘   → docs/TODO/active/steps/P2_04.05_*.md
                      ▼
-            ┌──────────────────┐       EXECUTES STEPS ONE AT A TIME
-  CLI       │   Runner Loop    │       bash run-steps.sh [OPTIONS]
-  auto      └────────┬─────────┘       → docs/TODO/completed/
+            ┌──────────────────┐
+  CLI       │   Runner Loop    │   Run: bash run-steps.sh [OPTIONS]
+  auto      └────────┬─────────┘   → docs/TODO/completed/
                      ▼
                ┌───────────┐
-               │  Blocker? │──yes──▶   BACK TO CHAT TO RESOLVE
+               │  Blocker? │──yes──▶  Back to Chat to resolve
                └───────────┘
 ```
+
+**Templates:** prompts/01 and prompts/02 use `templates/01-feature-overview.template` and `templates/02-agent-first-todo.template` respectively for output format.
 
 ---
 
@@ -177,7 +176,7 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 - **Step ordering:** Runner uses "Depends on" field and step id prefix for ordering.
 - **Blockers:** Failed verification creates a file in `action_required/`. Runner pauses until removed.
 - **Manual testing:** Steps requiring manual testing create files in `action_required/` with instructions. Use `--skip-manual` for unattended runs.
-- **Prompts:** Execute prompt is `prompts/03-execute-single-step.prompt`. Output level controlled by `prompts/fragments/output-step-only.txt` (default) or `output-zero.txt` (`--quiet`).
+- **Prompts:** Execute prompt is `prompts/04-execute-single-step.prompt`. Output level controlled by `prompts/fragments/output-step-only.txt` (default) or `output-zero.txt` (`--quiet`).
 
 ---
 

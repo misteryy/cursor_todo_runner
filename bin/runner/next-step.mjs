@@ -22,7 +22,7 @@ import { fileURLToPath } from "url";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUNNER_ROOT = path.join(SCRIPT_DIR, "..", "..");
-const EXECUTE_STEP_PROMPT_PATH = path.join(RUNNER_ROOT, "prompts", "03-execute-single-step.prompt");
+const EXECUTE_STEP_PROMPT_PATH = path.join(RUNNER_ROOT, "prompts", "04-execute-single-step.prompt");
 const FRAGMENTS_DIR = path.join(RUNNER_ROOT, "prompts", "fragments");
 
 function parseArgs() {

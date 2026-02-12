@@ -19,7 +19,7 @@ import { fileURLToPath } from "url";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUNNER_ROOT = path.join(SCRIPT_DIR, "..", "..");
-const SUMMARY_PROMPT_PATH = path.join(RUNNER_ROOT, "prompts", "04-execution-summary.prompt");
+const SUMMARY_PROMPT_PATH = path.join(RUNNER_ROOT, "prompts", "05-execution-summary.prompt");
 
 function parseArgs() {
   const args = process.argv.slice(2);

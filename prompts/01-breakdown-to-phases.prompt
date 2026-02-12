@@ -1,0 +1,18 @@
+You are given a high-level Design/MVP document @DesignDocument
+
+Your task:
+- Break down this design into focused Feature Overviews (one per phase).
+- Each Feature Overview must use the provided @templates/01-feature-overview.template
+- Each phase should represent a coherent milestone with clear deliverables.
+- Preserve all core constraints and requirements from the design.
+- Surface risks and unknowns explicitly in each overview.
+- Assume Context7 will be used for framework and library details.
+- If any open questions block the breakdown, list them and stop — let's resolve together.
+  Give at least 3 suggestions with short explanations for each question.
+
+Output:
+- One Feature Overview per phase (typically 3–8 phases for a full project)
+- Each overview standalone and usable for TODO generation
+- Store each overview in docs/design/active/
+- Filename pattern: {number:2d}_Phase{N}_{Short_Name}.md
+  Examples: 01_Phase1_Foundation_And_Design_System.md, 02_Phase2_Map_Integration.md
