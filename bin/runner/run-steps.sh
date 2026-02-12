@@ -80,7 +80,7 @@ mkdir -p "$ROOT/docs/TODO/runner"
 mkdir -p "$ROOT/docs/TODO/action_required"
 
 NEXT_ARGS=()
-[[ -n "$PHASE" ]] && NEXwaT_ARGS+=(--phase "$PHASE")
+[[ -n "$PHASE" ]] && NEXT_ARGS+=(--phase "$PHASE")
 # Zero-output fragment by default; minimal fragment only when --debug
 [[ -z "$DEBUG" ]] && NEXT_ARGS+=(--quiet)
 
