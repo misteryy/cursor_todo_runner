@@ -18,6 +18,6 @@ On successful completion:
 - The runner will move this step file to completed automatically. You do nothing in docs/TODO for success.
 
 When verification does NOT pass (e.g. command fails, environment missing, tests fail):
-- Create exactly one markdown file in docs/TODO/action_required/ describing what failed and what the user must do to fix it. Use a clear filename, e.g. step_P1_01.01_environment_verification.md or step_<stepId>_blocked.md. The runner will not run further steps until this file is removed after the user resolves the issue.
+- Create exactly one markdown file in docs/TODO/action_required/ describing what failed and what the user must do to fix it. Use a clear filename, e.g. take_action_P1_01.01_environment_verification.md. The runner will not run further steps until this file is removed after the user resolves the issue.
 
 Do not commit to git.
