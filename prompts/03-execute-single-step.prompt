@@ -10,7 +10,7 @@ Rules:
 - Stop when this step is complete and verified.
 - End with a minimal summary: (1) what changed, (2) verification result. Do not create or edit files in docs/TODO/summaries/ — the runner generates one summary per phase at the end of the run.
 - Do not move or rename the step file or any file in docs/TODO/active/steps/ or docs/TODO/completed/steps/ — the runner marks the step complete after you finish.
-- If this step file instructs you to move the parent Agent-First TODO to completed (e.g. "last step" instruction), do that: mv the TODO file from docs/TODO/active/ to docs/TODO/completed/, same filename.
+- Do not move the Agent-First TODO file — the runner handles that when all steps are complete.
 
 On successful completion:
 - The runner will move this step file to completed automatically. You do nothing in docs/TODO for success.

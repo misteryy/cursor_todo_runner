@@ -2,7 +2,9 @@
 /**
  * Run when the runner loop exits with "no pending steps" (phase/TODO finished).
  * 1. Moves any Agent-First TODO from docs/TODO/active/ to docs/TODO/completed/ if still there.
- * 2. Builds execution-summary prompt with context (TodoFile, CompletedSteps, etc.) and writes
+ * 2. After last TODO of a phase is processed (no remaining in backlog or active, excluding cancelled),
+ *    moves the design doc from docs/design/active/ to docs/design/completed/.
+ * 3. Builds execution-summary prompt with context (TodoFile, CompletedSteps, etc.) and writes
  *    docs/TODO/runner/RUNNER_SUMMARY_PROMPT.txt for the agent to run once.
  * Summary is generated only once per finished phase, not per step.
  *
@@ -37,11 +39,14 @@ function parseArgs() {
 const ROOT = process.cwd();
 const TODO_DIR = path.join(ROOT, "docs", "TODO");
 const ACTIVE_DIR = path.join(TODO_DIR, "active");
+const BACKLOG_DIR = path.join(TODO_DIR, "backlog");
 const COMPLETED_DIR = path.join(TODO_DIR, "completed");
 const COMPLETED_STEPS_DIR = path.join(COMPLETED_DIR, "steps");
 const SUMMARIES_DIR = path.join(COMPLETED_DIR, "summaries");
 const RUNNER_DIR = path.join(TODO_DIR, "runner");
 const SUMMARY_PROMPT_OUT = path.join(RUNNER_DIR, "RUNNER_SUMMARY_PROMPT.txt");
+const DESIGN_ACTIVE_DIR = path.join(ROOT, "docs", "design", "active");
+const DESIGN_COMPLETED_DIR = path.join(ROOT, "docs", "design", "completed");
 
 function stepIdFromFilename(name) {
   const match = name.match(/^(P\d+_\d+\.\d+)_/);
@@ -52,6 +57,12 @@ function phaseFromStepId(stepId) {
   if (!stepId) return null;
   const idx = stepId.lastIndexOf(".");
   return idx > 0 ? stepId.slice(0, idx) : stepId;
+}
+
+/** Extract phase prefix from TODO filename (e.g. P1_01_foo.md -> P1) */
+function phaseFromTodoFilename(name) {
+  const match = name.match(/^(P\d+)_/);
+  return match ? match[1] : null;
 }
 
 function listTodoFiles(dir) {
@@ -67,6 +78,57 @@ function listStepFiles(dir) {
 function todoMatchesPhase(todoBasename, phase) {
   if (!phase) return true;
   return todoBasename.startsWith(phase + "_") || todoBasename.includes("_" + phase + "_");
+}
+
+/** Check if a TODO file has Status: CANCELLED (case-insensitive) */
+function isTodoCancelled(filepath) {
+  try {
+    const content = fs.readFileSync(filepath, "utf8");
+    // Match "Status:" line followed by CANCELLED (case-insensitive)
+    const statusMatch = content.match(/^Status:\s*\n?\s*(.+)/im);
+    if (statusMatch) {
+      return /cancelled/i.test(statusMatch[1]);
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/** Get non-cancelled TODOs for a phase from a directory */
+function getNonCancelledTodosForPhase(dir, phase) {
+  const files = listTodoFiles(dir).filter((f) => todoMatchesPhase(f, phase));
+  return files.filter((f) => !isTodoCancelled(path.join(dir, f)));
+}
+
+/** Check if there are remaining non-cancelled TODOs for this phase in backlog or active */
+function hasRemainingTodosForPhase(phase) {
+  const backlogTodos = getNonCancelledTodosForPhase(BACKLOG_DIR, phase);
+  const activeTodos = getNonCancelledTodosForPhase(ACTIVE_DIR, phase);
+  return backlogTodos.length > 0 || activeTodos.length > 0;
+}
+
+/** Move design doc for a phase from docs/design/active/ to docs/design/completed/ if it exists */
+function moveDesignDocToCompleted(phase) {
+  if (!phase || !fs.existsSync(DESIGN_ACTIVE_DIR)) return;
+
+  const designFiles = fs.readdirSync(DESIGN_ACTIVE_DIR).filter((f) => {
+    if (!f.endsWith(".md")) return false;
+    // Match files that start with the phase prefix
+    return f.startsWith(phase + "_") || f.startsWith(phase + "-") || f === phase + ".md";
+  });
+
+  if (designFiles.length === 0) return;
+
+  fs.mkdirSync(DESIGN_COMPLETED_DIR, { recursive: true });
+  for (const file of designFiles) {
+    const src = path.join(DESIGN_ACTIVE_DIR, file);
+    // Skip if it's a directory
+    if (fs.statSync(src).isDirectory()) continue;
+    const dest = path.join(DESIGN_COMPLETED_DIR, file);
+    fs.renameSync(src, dest);
+    console.log("Moved design doc to completed:", file);
+  }
 }
 
 function chooseTodoToSummarize(phaseFilter) {
@@ -114,6 +176,14 @@ function main() {
     console.log("No TODO to summarize (none in active or completed for this phase).");
     process.exit(0);
   }
+
+  // After moving TODO to completed, check if this was the last non-cancelled TODO for the phase
+  // If so, move the design doc to completed
+  const phase = phaseFilter || phaseFromTodoFilename(todo.basename);
+  if (phase && !hasRemainingTodosForPhase(phase)) {
+    moveDesignDocToCompleted(phase);
+  }
+
   if (noSummary) {
     process.exit(0);
   }

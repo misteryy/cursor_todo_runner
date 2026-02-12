@@ -1,3 +1,4 @@
 Output:
-- State which task you are working on: one line naming the step from this step file (e.g. step id or title). Do not stream long replies, narrate progress, or add preambles/postambles.
-- After completing: one-line summary of what changed and verification pass/fail. No step-by-step narration.
+- For EACH task in the step file: print one line stating which task you are starting (e.g. "- Using Context7 for geolocator permission handling", "- Add locate button to map_controls.dart").
+- Between task announcements: no text output — only use tools.
+- AFTER all tasks complete: one line summarizing what changed and verification pass/fail.

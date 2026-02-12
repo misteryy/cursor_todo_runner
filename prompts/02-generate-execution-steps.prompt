@@ -19,7 +19,7 @@ Rules:
 - If the TODO involves database changes, never include a step that requests a full DB reset; use additive migrations only.
 - Do NOT write any code yet.
 - Do NOT repeat the full design from the TODO; reference it by section (e.g. "per §5 Architectural Approach").
-- Last step file must include: "After this step is verified, move the Agent-First TODO file from docs/TODO/active/ to docs/TODO/completed/ (use mv, same filename)."
+- Do NOT include instructions to move files in any step — the runner handles moving step files and TODOs to completed automatically.
 - If there are open questions that block decomposition, list them and stop; do not create step files until resolved.
 - Do not commit to git.
 
