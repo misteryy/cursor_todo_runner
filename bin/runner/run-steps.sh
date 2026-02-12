@@ -541,11 +541,32 @@ while true; do
     echo "Step marked completed (runner). Moved to: $DEST"
   fi
 
+  # Check if phase is complete before exiting (for --once or --steps limit)
+  check_phase_complete() {
+    # Run next-step to see if there are pending steps
+    node "$RUNNER_DIR/next-step.mjs" "${NEXT_ARGS[@]}" --dry-run 2>/dev/null
+    local check_exit=$?
+    if [[ "$check_exit" -eq 2 ]]; then
+      echo "Phase finished (no pending steps)."
+      ON_DONE_ARGS=()
+      [[ -n "$PHASE" ]] && ON_DONE_ARGS+=(--phase "$PHASE")
+      [[ -n "$NO_SUMMARY" ]] && ON_DONE_ARGS+=(--no-summary)
+      node "$RUNNER_DIR/on-phase-done.mjs" "${ON_DONE_ARGS[@]}" 2>/dev/null || true
+      if [[ -z "$NO_SUMMARY" && -r "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt" ]]; then
+        echo "Generating execution summary ..."
+        run_agent "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" "summary"
+        echo "Summary prompt consumed; see docs/TODO/completed/summaries/ for output."
+      fi
+    fi
+  }
+
   if [[ -n "$ONCE" ]]; then
+    check_phase_complete
     exit 0
   fi
   if [[ -n "$STEPS" && "$RUNS" -ge "$STEPS" ]]; then
     echo "Reached --steps $STEPS; stopping."
+    check_phase_complete
     exit 0
   fi
 done

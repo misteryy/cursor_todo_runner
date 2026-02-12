@@ -13,6 +13,7 @@
  *   --phase ID      Only consider steps whose id starts with ID (e.g. P1_03 for P1_03.1, P1_03.2).
  *   --quiet         Use no-output fragment for the execute prompt (prompts/fragments/output-zero.txt). Default: output-step-only.txt.
  *   --skip-manual   Do not create action_required files for manual testing; only report in summary.
+ *   --dry-run       Only check status and exit with appropriate code; do not write files.
  */
 
 import fs from "fs";
@@ -29,6 +30,7 @@ function parseArgs() {
   let phase = null;
   let quiet = false;
   let skipManual = false;
+  let dryRun = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--phase" && args[i + 1]) {
       phase = args[i + 1];
@@ -37,12 +39,14 @@ function parseArgs() {
       quiet = true;
     } else if (args[i] === "--skip-manual") {
       skipManual = true;
+    } else if (args[i] === "--dry-run") {
+      dryRun = true;
     }
   }
-  return { phase, quiet, skipManual };
+  return { phase, quiet, skipManual, dryRun };
 }
 
-const { phase: phaseFilter, quiet: useZeroOutput, skipManual } = parseArgs();
+const { phase: phaseFilter, quiet: useZeroOutput, skipManual, dryRun } = parseArgs();
 const ROOT = process.cwd();
 const TODO_DIR = path.join(ROOT, "docs", "TODO");
 const ACTIVE_STEPS_DIR = path.join(TODO_DIR, "active", "steps");
@@ -175,6 +179,12 @@ function main() {
 
   const next = ready[0];
   const stepPath = path.join("docs", "TODO", "active", "steps", next.filename);
+
+  // Dry-run mode: just report status and exit without writing files
+  if (dryRun) {
+    process.exit(0);
+  }
+
   if (!fs.existsSync(RUNNER_DIR)) fs.mkdirSync(RUNNER_DIR, { recursive: true });
 
   const promptText = loadExecuteStepPrompt(stepPath);
