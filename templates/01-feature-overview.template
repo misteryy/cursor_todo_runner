@@ -2,6 +2,9 @@
 FEATURE OVERVIEW — <Feature Name>
 ====================================
 
+Type (for phase filename; use in P{number:2d}_{Type}_{Short_Name}.md):
+feature | bugfix | chore | spike | refactor
+
 Status:
 IDEA | EXPLORING | APPROVED
 

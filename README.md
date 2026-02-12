@@ -59,11 +59,11 @@ Prompts 01 and 02 use the templates in `templates/` for their output format.
 docs/
 ├── phase/
 │   ├── active/
-│   │   ├── 00_Development_Roadmap.md
-│   │   ├── 02_Phase2_Map_Integration.md
-│   │   └── 03_Phase3_Course_Definition.md
+│   │   ├── P01_feature_Development_Roadmap.md
+│   │   ├── P02_feature_Map_Integration.md
+│   │   └── P03_feature_Course_Definition.md
 │   └── completed/
-│       └── 01_Phase1_Foundation.md
+│       └── P01_feature_Foundation.md
 │
 └── TODO/
     ├── active/
@@ -89,7 +89,7 @@ docs/
     └── action_required/         ← blockers that pause the runner
 ```
 
-Naming: TODOs `P<phase>_<seq>_<Name>.md`; steps `P<phase>_<seq>.<step>_<slug>.md`.
+Naming: Phase docs `P<number:2d>_<type>_<Short_Name>.md` (type: feature | bugfix | chore | spike | refactor). TODOs `P<phase>_<seq>_<Name>.md`; steps `P<phase>_<seq>.<step>_<slug>.md`.
 
 ---
 

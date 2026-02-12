@@ -1,0 +1,117 @@
+===============================
+.CURSORRULES (2026-READY)
+===============================
+
+Purpose:
+These rules define project-specific invariants, philosophy, and constraints.
+They do NOT encode framework usage, library APIs, or version-specific behavior.
+Framework and library guidance must be obtained dynamically via Context7.
+
+
+--------------------------------
+GENERAL PRINCIPLES
+--------------------------------
+- Favor correctness and clarity over cleverness.
+- Prefer explicit data models over implicit conventions.
+- Enforce a single source of truth for canonical data.
+- Surface ambiguity or uncertainty before coding.
+
+
+--------------------------------
+ARCHITECTURE & BOUNDARIES
+--------------------------------
+- Domain logic must be framework-agnostic.
+- Presentation and formatting logic must not leak into domain logic.
+- Side effects (I/O, network, database) must be isolated behind clear boundaries.
+- Avoid circular dependencies between domains.
+
+
+--------------------------------
+DATA & STATE INVARIANTS
+--------------------------------
+- Canonical representations must exist for normalized data.
+- Derived values must be reproducible from canonical sources.
+- Backward compatibility must be preserved unless explicitly deprecated.
+- Nullability and optionality must be explicit and intentional.
+
+
+--------------------------------
+ERROR HANDLING
+--------------------------------
+- Fail loudly on programmer errors.
+- Handle user or input errors gracefully.
+- Unknown or unsupported inputs must degrade safely.
+- Error messages must be actionable for developers.
+
+
+--------------------------------
+TESTING PHILOSOPHY
+--------------------------------
+- Tests must validate invariants, not implementations.
+- Prefer fewer meaningful tests over shallow coverage.
+- Edge cases and failure modes require explicit tests.
+- Tests must remain stable across refactors.
+- When implementing features or fixing bugs:
+  - Run relevant tests after changes.
+  - Update tests if behavior changes.
+  - Ensure all tests pass before completing the task.
+  - If tests exist for modified code, they must pass.
+
+
+--------------------------------
+PERFORMANCE & RELIABILITY
+--------------------------------
+- Avoid premature optimization.
+- Cache only when correctness is preserved.
+- Initialization logic must be deterministic and idempotent.
+- Avoid hidden global state.
+
+
+--------------------------------
+CODE STYLE & MAINTAINABILITY
+--------------------------------
+- Names should reveal intent, not mechanics.
+- Avoid deeply nested logic; refactor instead.
+- Comments explain why, not what.
+- Delete dead or unused code aggressively.
+
+
+--------------------------------
+AGENT OUTPUT STYLE
+--------------------------------
+- Be concise when implementing; skip verbose explanations.
+- Show only essential output: key decisions, changes made, issues found.
+- Avoid repeating code back unless specifically asked.
+- No step-by-step narration; just do the work and summarize briefly.
+- When tests are required: run them automatically and report results.
+
+
+--------------------------------
+USE OF CONTEXT7 (MANDATORY)
+--------------------------------
+- Use Context7 for:
+  - Framework conventions
+  - Library APIs
+  - Version-specific best practices
+- If Context7 guidance conflicts with these rules:
+  - Surface the conflict explicitly
+  - Do not silently choose one
+
+--------------------------------
+FORBIDDEN PATTERNS
+--------------------------------
+- Copying framework documentation into static rules
+- Encoding version-specific APIs in project instructions
+- Over-engineering before constraints are validated
+- Silent behavior changes without documentation
+- Looping on IDE linter errors: if `tsc --noEmit` passes but IDE shows errors, trust tsc and move on (stale cache)
+
+
+--------------------------------
+FINAL INSTRUCTION TO AGENTS
+--------------------------------
+If uncertain:
+1. Ask clarifying questions once
+2. Propose a default
+3. Explain the tradeoff
+4. Proceed conservatively
