@@ -51,11 +51,37 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 | `--steps N` | Run at most N steps, then exit. |
 | `--phase ID` | Only run steps whose id starts with `ID` (e.g. `P1_03`). |
 | `--no-summary` | When phase finishes, do not generate execution summary (TODO is still moved to completed). |
+| `--skip-manual` | Do not create `action_required/` files for manual testing; only report in summary. Useful for unattended runs. |
 | `--quiet` | Send agent stdout to /dev/null. Runner prompts and alerts remain on stdout. |
-| `--debug` | Use minimal output fragment, show agent stdout, log to `docs/TODO/runner/agent_output_YYYYMMDD-HHMMSS.log` with run parameters (run_timestamp, root, phase, once, steps, no_summary, quiet) at the top. |
+| `--debug` | Use minimal output fragment, show agent stdout, log to `docs/TODO/runner/agent_output_YYYYMMDD-HHMMSS.log` with run parameters (run_timestamp, root, phase, once, steps, no_summary, skip_manual, quiet) at the top. |
 | `[ROOT]` | Project root; default is current directory. |
 
 **Env:** `CURSOR_TODO_QUIET=1` — same as `--quiet`.
+
+### Supported Models
+
+Use `--model MODEL` to specify which model the Cursor agent uses. Default is `auto`.
+
+| Model | Notes |
+|-------|-------|
+| `auto` | Default. Cursor picks the best model for the task. |
+| `claude-opus-4-5-20250514` | Claude Opus 4.5 — high capability, best for complex reasoning. |
+| `claude-opus-4-5-20250514-thinking` | Claude Opus 4.5 with extended thinking — shows chain-of-thought. |
+| `claude-sonnet-4-20250514` | Claude Sonnet 4 — fast and capable, good balance. |
+| `gpt-5.2` | GPT-5.2 — OpenAI flagship model. |
+| `gpt-5.2-mini` | GPT-5.2 Mini — faster, lower cost. |
+| `gpt-4o` | GPT-4o — multimodal, fast responses. |
+| `gpt-4o-mini` | GPT-4o Mini — lightweight, very fast. |
+| `gemini-2.5-pro` | Gemini 2.5 Pro — Google's flagship. |
+| `gemini-2.5-flash` | Gemini 2.5 Flash — optimized for speed. |
+
+**Examples:**
+```bash
+run-steps.sh --model claude-opus-4-5-20250514-thinking --phase P1_03
+run-steps.sh --model gpt-4o-mini --steps 5
+```
+
+**Note:** Model availability depends on your Cursor subscription. Use `cursor models` or check Cursor settings to see available models.
 
 ### next-step.mjs
 
@@ -70,6 +96,7 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 - **Layout:** Runner creates `docs/TODO/active/steps/`, `docs/TODO/completed/steps/`, `docs/TODO/completed/summaries/`, `docs/TODO/runner/`, and `docs/TODO/action_required/` if missing. Add `gitignore.example` contents to your `.gitignore`.
 - **Step files:** In `docs/TODO/active/steps/`, names like `P1_03.1_slug.md`. Runner uses "Depends on" and step id prefix (e.g. `P1_03`) for ordering.
 - **Blockers:** If the agent fails verification, it writes a file to `docs/TODO/action_required/`. The runner stops until that file is removed. Then run `node …/bin/runner/accept-step.mjs` if needed and re-run.
+- **Manual testing:** By default, if a step requires manual testing (UI verification, user interaction), the agent creates a file in `docs/TODO/action_required/` with instructions. The runner pauses until you complete testing and remove the file. Use `--skip-manual` to disable this and only report manual tests in the summary.
 - **Prompt source:** Execute prompt is `prompts/03-execute-single-step.prompt` (placeholder `@OutputInstruction` is replaced by `prompts/fragments/output-step-only.txt` by default or `output-zero.txt` when `--quiet`). `next-step.mjs` writes `NEXT.md` and `RUNNER_PROMPT.txt`. Runner always echoes NEXT.md and the start of RUNNER_PROMPT.txt before each agent run (even with `--quiet`).
 
 ---

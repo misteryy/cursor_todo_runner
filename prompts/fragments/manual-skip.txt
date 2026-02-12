@@ -1,0 +1,4 @@
+Manual testing:
+- Do NOT create files in docs/TODO/action_required/ for manual testing requirements.
+- If manual testing would be beneficial, mention it in your final summary only (e.g., "Manual: run app, tap X, verify Y").
+- The runner will continue to the next step without pausing for manual verification.

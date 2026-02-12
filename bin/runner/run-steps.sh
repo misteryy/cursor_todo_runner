@@ -9,6 +9,7 @@
 #   --phase ID       Only run steps whose id starts with ID (e.g. P1_03).
 #   --model MODEL    Agent model to use (default: auto).
 #   --no-summary     When phase finishes, do not generate execution summary (still move TODO to completed).
+#   --skip-manual    Do not create action_required files for manual testing; only report in summary.
 #   --quiet          Send agent stdout to /dev/null (runner prompts and alerts always on stdout).
 #   --debug          Show agent stdout, log to timestamped file with run parameters.
 #   [ROOT]           Project root (default: current directory).
@@ -50,6 +51,7 @@ PHASE=""
 MODEL="auto"
 ROOT=""
 NO_SUMMARY=""
+SKIP_MANUAL=""
 QUIET="${CURSOR_TODO_QUIET:-}"
 DEBUG=""
 while [[ $# -gt 0 ]]; do
@@ -59,6 +61,7 @@ while [[ $# -gt 0 ]]; do
     --phase)        PHASE="$2"; shift 2 ;;
     --model)        MODEL="$2"; shift 2 ;;
     --no-summary)   NO_SUMMARY=1; shift ;;
+    --skip-manual)  SKIP_MANUAL=1; shift ;;
     --quiet)        QUIET=1; shift ;;
     --debug)        DEBUG=1; shift ;;
     *)              ROOT="$1"; shift ;;
@@ -86,6 +89,8 @@ NEXT_ARGS=()
 [[ -n "$PHASE" ]] && NEXT_ARGS+=(--phase "$PHASE")
 # No-output fragment only when --quiet
 [[ -n "$QUIET" ]] && NEXT_ARGS+=(--quiet)
+# Skip manual test blocking when --skip-manual
+[[ -n "$SKIP_MANUAL" ]] && NEXT_ARGS+=(--skip-manual)
 
 RUNNER_DIR_FILES="$ROOT/docs/TODO/runner"
 if [[ -n "$DEBUG" ]]; then
@@ -98,6 +103,7 @@ if [[ -n "$DEBUG" ]]; then
     echo "once=${ONCE:-}"
     echo "steps=${STEPS:-}"
     echo "no_summary=${NO_SUMMARY:-}"
+    echo "skip_manual=${SKIP_MANUAL:-}"
     echo "quiet=${QUIET:-}"
     echo "---"
   } >> "$AGENT_LOG"

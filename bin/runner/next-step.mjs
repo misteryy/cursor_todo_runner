@@ -10,8 +10,9 @@
  *   2  No pending steps (for this phase or at all); runner must not invoke the agent.
  *
  * Options:
- *   --phase ID   Only consider steps whose id starts with ID (e.g. P1_03 for P1_03.1, P1_03.2).
- *   --quiet      Use no-output fragment for the execute prompt (prompts/fragments/output-zero.txt). Default: output-step-only.txt.
+ *   --phase ID      Only consider steps whose id starts with ID (e.g. P1_03 for P1_03.1, P1_03.2).
+ *   --quiet         Use no-output fragment for the execute prompt (prompts/fragments/output-zero.txt). Default: output-step-only.txt.
+ *   --skip-manual   Do not create action_required files for manual testing; only report in summary.
  */
 
 import fs from "fs";
@@ -27,18 +28,21 @@ function parseArgs() {
   const args = process.argv.slice(2);
   let phase = null;
   let quiet = false;
+  let skipManual = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--phase" && args[i + 1]) {
       phase = args[i + 1];
       i++;
     } else if (args[i] === "--quiet") {
       quiet = true;
+    } else if (args[i] === "--skip-manual") {
+      skipManual = true;
     }
   }
-  return { phase, quiet };
+  return { phase, quiet, skipManual };
 }
 
-const { phase: phaseFilter, quiet: useZeroOutput } = parseArgs();
+const { phase: phaseFilter, quiet: useZeroOutput, skipManual } = parseArgs();
 const ROOT = process.cwd();
 const TODO_DIR = path.join(ROOT, "docs", "TODO");
 const ACTIVE_STEPS_DIR = path.join(TODO_DIR, "active", "steps");
@@ -54,13 +58,25 @@ function loadExecuteStepPrompt(stepPath) {
     throw new Error(`${EXECUTE_STEP_PROMPT_PATH} must contain @StepFile placeholder`);
   }
   template = template.replace("@StepFile", "@" + stepPath);
-  const fragmentName = useZeroOutput ? "output-zero.txt" : "output-step-only.txt";
-  const fragmentPath = path.join(FRAGMENTS_DIR, fragmentName);
+
+  // Output instruction fragment
+  const outputFragmentName = useZeroOutput ? "output-zero.txt" : "output-step-only.txt";
+  const outputFragmentPath = path.join(FRAGMENTS_DIR, outputFragmentName);
   if (!template.includes("@OutputInstruction")) {
     throw new Error(`${EXECUTE_STEP_PROMPT_PATH} must contain @OutputInstruction placeholder`);
   }
-  const outputFragment = fs.readFileSync(fragmentPath, "utf8").trim();
+  const outputFragment = fs.readFileSync(outputFragmentPath, "utf8").trim();
   template = template.replace("@OutputInstruction", outputFragment);
+
+  // Manual test instruction fragment
+  const manualFragmentName = skipManual ? "manual-skip.txt" : "manual-block.txt";
+  const manualFragmentPath = path.join(FRAGMENTS_DIR, manualFragmentName);
+  if (!template.includes("@ManualTestInstruction")) {
+    throw new Error(`${EXECUTE_STEP_PROMPT_PATH} must contain @ManualTestInstruction placeholder`);
+  }
+  const manualFragment = fs.readFileSync(manualFragmentPath, "utf8").trim();
+  template = template.replace("@ManualTestInstruction", manualFragment);
+
   return template;
 }
 
