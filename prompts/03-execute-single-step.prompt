@@ -8,7 +8,8 @@ Rules:
 - Do not refactor or change code outside the scope of this step.
 - After implementing, run the "How to verify" section for this step (commands, tests, or checks). If the step defines tests or a verification command, run it and report pass/fail.
 - Stop when this step is complete and verified.
-- End with a minimal summary: (1) what changed, (2) verification result. Do not create or edit files in docs/TODO/summaries/ — the runner generates one summary per phase at the end of the run.
+- End with a minimal summary: (1) what changed, (2) verification result, (3) manual tests if applicable. Do not create or edit files in docs/TODO/summaries/ — the runner generates one summary per phase at the end of the run.
+- For manual tests: suggest what the user should check by running the app (e.g., "tap X and verify Y appears", "navigate to Z and confirm behavior"). Skip build/compile suggestions since you already verified those. Only include if there's meaningful UI or behavior to manually verify.
 - Do not move or rename the step file or any file in docs/TODO/active/steps/ or docs/TODO/completed/steps/ — the runner marks the step complete after you finish.
 - Do not move the Agent-First TODO file — the runner handles that when all steps are complete.
 

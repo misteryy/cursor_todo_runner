@@ -1,4 +1,4 @@
 Output:
 - For EACH task in the step file: print one line stating which task you are starting (e.g. "- Using Context7 for geolocator permission handling", "- Add locate button to map_controls.dart").
 - Between task announcements: no text output — only use tools.
-- AFTER all tasks complete: one line summarizing what changed and verification pass/fail.
+- AFTER all tasks complete: summary with (1) what changed, (2) verification pass/fail, (3) manual tests if applicable (e.g., "Manual: run app, tap locate button, verify map centers on current location").

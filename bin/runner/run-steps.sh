@@ -7,6 +7,7 @@
 #   --once           Run at most one step, then exit.
 #   --steps N        Run at most N steps, then exit.
 #   --phase ID       Only run steps whose id starts with ID (e.g. P1_03).
+#   --model MODEL    Agent model to use (default: auto).
 #   --no-summary     When phase finishes, do not generate execution summary (still move TODO to completed).
 #   --quiet          Send agent stdout to /dev/null (runner prompts and alerts always on stdout).
 #   --debug          Show agent stdout, log to timestamped file with run parameters.
@@ -46,6 +47,7 @@ fi
 ONCE=""
 STEPS=""
 PHASE=""
+MODEL="auto"
 ROOT=""
 NO_SUMMARY=""
 QUIET="${CURSOR_TODO_QUIET:-}"
@@ -55,6 +57,7 @@ while [[ $# -gt 0 ]]; do
     --once)         ONCE=1; shift ;;
     --steps)        STEPS="$2"; shift 2 ;;
     --phase)        PHASE="$2"; shift 2 ;;
+    --model)        MODEL="$2"; shift 2 ;;
     --no-summary)   NO_SUMMARY=1; shift ;;
     --quiet)        QUIET=1; shift ;;
     --debug)        DEBUG=1; shift ;;
@@ -91,6 +94,7 @@ if [[ -n "$DEBUG" ]]; then
     echo "run_timestamp=$(date -Iseconds)"
     echo "root=$ROOT"
     echo "phase=${PHASE:-}"
+    echo "model=$MODEL"
     echo "once=${ONCE:-}"
     echo "steps=${STEPS:-}"
     echo "no_summary=${NO_SUMMARY:-}"
@@ -99,6 +103,347 @@ if [[ -n "$DEBUG" ]]; then
   } >> "$AGENT_LOG"
 fi
 RUNNER_PROMPT="$RUNNER_DIR_FILES/RUNNER_PROMPT.txt"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# beautify_stream: Process stream-json output for human-readable progress display
+#
+# Reads JSON lines from stdin and outputs:
+#   - Spinner during thinking phases (TTY only)
+#   - Tool names when tools start (e.g., "Reading file.dart...")
+#   - Tool completion markers
+#   - Assistant text output (the actual agent response)
+#
+# When output is a TTY: shows animated spinners with ANSI escape codes
+# When output is a file: clean text without spinners or escape codes
+#
+# Usage: agent --output-format stream-json ... | beautify_stream
+# ─────────────────────────────────────────────────────────────────────────────
+beautify_stream() {
+  local thinking_active=""
+  local current_tool=""
+  local current_tool_category=""
+  local spinner_chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+  local spinner_idx=0
+  local is_tty=""
+
+  # Tool grouping state
+  local group_category=""      # read, search, write, edit, shell, other
+  local group_count=0
+  local group_last_name=""     # Last tool name (for single-item display)
+
+  # Assistant streaming state
+  local assistant_streaming=""
+  local assistant_newline_needed=""
+
+  # Detect if stdout is a terminal
+  [[ -t 1 ]] && is_tty=1
+
+  # Clear current line helper (no-op when not a TTY)
+  clear_line() {
+    [[ -n "$is_tty" ]] && printf '\r\033[K'
+  }
+
+  # Flush accumulated tool group to output
+  flush_group() {
+    [[ $group_count -eq 0 ]] && return
+    clear_line
+    if [[ $group_count -eq 1 ]]; then
+      printf '✓ %s\n' "$group_last_name"
+    else
+      case "$group_category" in
+        read)   printf '✓ Read %d files\n' "$group_count" ;;
+        search) printf '✓ %d searches\n' "$group_count" ;;
+        write)  printf '✓ Wrote %d files\n' "$group_count" ;;
+        edit)   printf '✓ Edited %d files\n' "$group_count" ;;
+        *)      printf '✓ %d operations\n' "$group_count" ;;
+      esac
+    fi
+    group_category=""
+    group_count=0
+    group_last_name=""
+  }
+
+  while IFS= read -r line; do
+    # Skip empty lines or non-JSON
+    [[ -z "$line" ]] && continue
+    [[ "$line" != "{"* ]] && continue
+
+    # Parse type and subtype
+    local msg_type msg_subtype
+    msg_type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null) || continue
+    msg_subtype=$(echo "$line" | jq -r '.subtype // empty' 2>/dev/null)
+
+    case "$msg_type" in
+      thinking)
+        case "$msg_subtype" in
+          delta)
+            # Show spinner while thinking (TTY only)
+            if [[ -z "$thinking_active" ]]; then
+              thinking_active=1
+            fi
+            if [[ -n "$is_tty" ]]; then
+              local char="${spinner_chars:$spinner_idx:1}"
+              spinner_idx=$(( (spinner_idx + 1) % ${#spinner_chars} ))
+              clear_line
+              printf '%s Thinking...' "$char"
+            fi
+            ;;
+          completed)
+            if [[ -n "$thinking_active" ]]; then
+              clear_line
+              thinking_active=""
+            fi
+            ;;
+        esac
+        ;;
+
+      tool_call)
+        case "$msg_subtype" in
+          started)
+            # Extract tool name and category
+            local tool_info tool_name tool_path tool_cmd tool_category
+            tool_info=$(echo "$line" | jq -r '.tool_call // empty' 2>/dev/null)
+
+            if echo "$tool_info" | grep -q 'readToolCall'; then
+              tool_path=$(echo "$line" | jq -r '.tool_call.readToolCall.args.path // empty' 2>/dev/null)
+              tool_name="Reading"
+              [[ -n "$tool_path" ]] && tool_name="Reading $(basename "$tool_path")"
+              tool_category="read"
+            elif echo "$tool_info" | grep -q 'lsToolCall'; then
+              tool_path=$(echo "$line" | jq -r '.tool_call.lsToolCall.args.path // empty' 2>/dev/null)
+              tool_name="Listing"
+              [[ -n "$tool_path" ]] && tool_name="Listing $(basename "$tool_path")"
+              tool_category="read"
+            elif echo "$tool_info" | grep -q 'shellToolCall'; then
+              tool_cmd=$(echo "$line" | jq -r '.tool_call.shellToolCall.args.command // empty' 2>/dev/null)
+              # Extract meaningful command: if "cd ... && cmd" or "cd ...; cmd", show just cmd
+              if [[ "$tool_cmd" == cd\ * ]] && [[ "$tool_cmd" == *" && "* || "$tool_cmd" == *"; "* ]]; then
+                # Remove everything up to and including && or ;
+                tool_cmd="${tool_cmd#*&&}"
+                tool_cmd="${tool_cmd#*;}"
+                tool_cmd="${tool_cmd# }"  # trim leading space
+              fi
+              # Truncate if still too long
+              [[ ${#tool_cmd} -gt 80 ]] && tool_cmd="${tool_cmd:0:77}..."
+              tool_name="Running: $tool_cmd"
+              tool_category="shell"  # Never group shell commands
+            elif echo "$tool_info" | grep -q 'globToolCall'; then
+              tool_name="Searching files"
+              tool_category="search"
+            elif echo "$tool_info" | grep -q 'grepToolCall'; then
+              tool_name="Searching content"
+              tool_category="search"
+            elif echo "$tool_info" | grep -q 'writeToolCall'; then
+              tool_path=$(echo "$line" | jq -r '.tool_call.writeToolCall.args.path // empty' 2>/dev/null)
+              tool_name="Writing"
+              [[ -n "$tool_path" ]] && tool_name="Writing $(basename "$tool_path")"
+              tool_category="write"
+            elif echo "$tool_info" | grep -q 'strReplaceToolCall'; then
+              tool_path=$(echo "$line" | jq -r '.tool_call.strReplaceToolCall.args.path // empty' 2>/dev/null)
+              tool_name="Editing"
+              [[ -n "$tool_path" ]] && tool_name="Editing $(basename "$tool_path")"
+              tool_category="edit"
+            else
+              # Generic tool name extraction
+              tool_name=$(echo "$tool_info" | jq -r 'keys[0] // "tool"' 2>/dev/null | sed 's/ToolCall$//')
+              tool_name="Using $tool_name"
+              tool_category="other"
+            fi
+
+            current_tool="$tool_name"
+            current_tool_category="$tool_category"
+            clear_line
+            if [[ -n "$is_tty" ]]; then
+              printf '→ %s...' "$tool_name"
+            fi
+            ;;
+
+          completed)
+            # Extract tool info from completed event (handles parallel tools correctly)
+            local completed_tool_info completed_tool_name completed_tool_path completed_tool_cmd completed_tool_category
+            completed_tool_info=$(echo "$line" | jq -r '.tool_call // empty' 2>/dev/null)
+            
+            # Determine tool name and category from the completed event
+            if echo "$completed_tool_info" | grep -q 'readToolCall'; then
+              completed_tool_path=$(echo "$line" | jq -r '.tool_call.readToolCall.args.path // empty' 2>/dev/null)
+              completed_tool_name="Reading"
+              [[ -n "$completed_tool_path" ]] && completed_tool_name="Reading $(basename "$completed_tool_path")"
+              completed_tool_category="read"
+            elif echo "$completed_tool_info" | grep -q 'lsToolCall'; then
+              completed_tool_path=$(echo "$line" | jq -r '.tool_call.lsToolCall.args.path // empty' 2>/dev/null)
+              completed_tool_name="Listing"
+              [[ -n "$completed_tool_path" ]] && completed_tool_name="Listing $(basename "$completed_tool_path")"
+              completed_tool_category="read"
+            elif echo "$completed_tool_info" | grep -q 'shellToolCall'; then
+              completed_tool_cmd=$(echo "$line" | jq -r '.tool_call.shellToolCall.args.command // empty' 2>/dev/null)
+              if [[ "$completed_tool_cmd" == cd\ * ]] && [[ "$completed_tool_cmd" == *" && "* || "$completed_tool_cmd" == *"; "* ]]; then
+                completed_tool_cmd="${completed_tool_cmd#*&&}"
+                completed_tool_cmd="${completed_tool_cmd#*;}"
+                completed_tool_cmd="${completed_tool_cmd# }"
+              fi
+              [[ ${#completed_tool_cmd} -gt 80 ]] && completed_tool_cmd="${completed_tool_cmd:0:77}..."
+              completed_tool_name="Running: $completed_tool_cmd"
+              completed_tool_category="shell"
+            elif echo "$completed_tool_info" | grep -q 'globToolCall'; then
+              completed_tool_name="Searching files"
+              completed_tool_category="search"
+            elif echo "$completed_tool_info" | grep -q 'grepToolCall'; then
+              completed_tool_name="Searching content"
+              completed_tool_category="search"
+            elif echo "$completed_tool_info" | grep -q 'writeToolCall'; then
+              completed_tool_path=$(echo "$line" | jq -r '.tool_call.writeToolCall.args.path // empty' 2>/dev/null)
+              completed_tool_name="Writing"
+              [[ -n "$completed_tool_path" ]] && completed_tool_name="Writing $(basename "$completed_tool_path")"
+              completed_tool_category="write"
+            elif echo "$completed_tool_info" | grep -q 'strReplaceToolCall'; then
+              completed_tool_path=$(echo "$line" | jq -r '.tool_call.strReplaceToolCall.args.path // empty' 2>/dev/null)
+              completed_tool_name="Editing"
+              [[ -n "$completed_tool_path" ]] && completed_tool_name="Editing $(basename "$completed_tool_path")"
+              completed_tool_category="edit"
+            else
+              completed_tool_name=$(echo "$completed_tool_info" | jq -r 'keys[0] // "tool"' 2>/dev/null | sed 's/ToolCall$//')
+              completed_tool_name="Using $completed_tool_name"
+              completed_tool_category="other"
+            fi
+
+            # Check if we should group with previous or flush
+            if [[ "$completed_tool_category" == "shell" ]]; then
+              # Shell commands are never grouped - flush any pending group first
+              flush_group
+              clear_line
+              printf '✓ %s\n' "$completed_tool_name"
+            elif [[ -z "$group_category" ]]; then
+              # Start new group
+              group_category="$completed_tool_category"
+              group_count=1
+              group_last_name="$completed_tool_name"
+            elif [[ "$group_category" == "$completed_tool_category" ]]; then
+              # Add to existing group
+              group_count=$((group_count + 1))
+              group_last_name="$completed_tool_name"
+            else
+              # Different category - flush previous, start new
+              flush_group
+              group_category="$completed_tool_category"
+              group_count=1
+              group_last_name="$completed_tool_name"
+            fi
+            # Reset current tool display state (not needed for grouping anymore)
+            current_tool=""
+            current_tool_category=""
+            ;;
+        esac
+        ;;
+
+      assistant)
+        # Flush any pending tool group before assistant output
+        flush_group
+
+        # Handle both streaming deltas and complete messages
+        local text delta_text
+        if [[ "$msg_subtype" == "delta" ]]; then
+          # Streaming delta - print incrementally
+          delta_text=$(echo "$line" | jq -r '.delta.text // empty' 2>/dev/null)
+          if [[ -n "$delta_text" ]]; then
+            if [[ -z "$assistant_streaming" ]]; then
+              # First delta - ensure clean line, add visual separator
+              [[ -n "$thinking_active" || -n "$current_tool" ]] && clear_line
+              thinking_active=""
+              printf '\n'
+              assistant_streaming=1
+            fi
+            printf '%s' "$delta_text"
+            assistant_newline_needed=1
+          fi
+        else
+          # Complete message (legacy format or final)
+          text=$(echo "$line" | jq -r '.message.content[0].text // empty' 2>/dev/null)
+          if [[ -n "$text" ]]; then
+            # Skip if text is only whitespace (newlines)
+            local trimmed="${text//[$'\n\r\t ']}"
+            if [[ -n "$trimmed" ]]; then
+              # Only show if we weren't streaming (avoid duplicate)
+              if [[ -z "$assistant_streaming" ]]; then
+                [[ -n "$thinking_active" || -n "$current_tool" ]] && clear_line
+                thinking_active=""
+                # Print assistant text with clear visual separation
+                printf '\n%s\n' "$text"
+                assistant_newline_needed=""
+              fi
+            fi
+          fi
+          # Reset streaming state on complete message
+          if [[ -n "$assistant_streaming" && -n "$assistant_newline_needed" ]]; then
+            printf '\n'
+            assistant_newline_needed=""
+          fi
+          assistant_streaming=""
+        fi
+        ;;
+
+      system)
+        # Optionally show session start
+        if [[ "$msg_subtype" == "init" ]]; then
+          local model
+          model=$(echo "$line" | jq -r '.model // "auto"' 2>/dev/null)
+          printf '⚡ Agent started (model: %s)\n' "$model"
+        fi
+        ;;
+    esac
+  done
+
+  # Flush any remaining group
+  flush_group
+
+  # Ensure final newline
+  [[ -n "$thinking_active" || -n "$current_tool" ]] && clear_line
+  [[ -n "$assistant_newline_needed" ]] && printf '\n'
+  echo ""
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# run_agent: Execute agent with consistent options, respecting DEBUG/QUIET
+#
+# Usage: run_agent "prompt content" ["log_label"]
+# Sets: AGENT_EXIT (exit code of agent command)
+# ─────────────────────────────────────────────────────────────────────────────
+run_agent() {
+  local prompt="$1"
+  local log_label="${2:-}"
+
+  AGENT_EXIT=0
+  set +e
+
+  if [[ -n "$DEBUG" ]]; then
+    [[ -n "$log_label" ]] && echo "=== $log_label ===" >> "$AGENT_LOG"
+    if [[ -n "$QUIET" ]]; then
+      agent -p --force --model "$MODEL" \
+        --output-format stream-json \
+        "$prompt" >> "$AGENT_LOG" 2>&1
+      AGENT_EXIT=$?
+    else
+      agent -p --force --model "$MODEL" \
+        --output-format stream-json \
+        "$prompt" 2>&1 | tee -a "$AGENT_LOG" | beautify_stream
+      AGENT_EXIT=${PIPESTATUS[0]:-$?}
+    fi
+  else
+    if [[ -n "$QUIET" ]]; then
+      agent -p --force --model "$MODEL" \
+        --output-format stream-json \
+        "$prompt" > /dev/null 2>&1
+      AGENT_EXIT=$?
+    else
+      agent -p --force --model "$MODEL" \
+        --output-format stream-json \
+        "$prompt" 2>&1 | beautify_stream
+      AGENT_EXIT=$?
+    fi
+  fi
+
+  set -e
+}
+
 NEXT_FILE="$RUNNER_DIR_FILES/NEXT.md"
 RUNS=0
 
@@ -115,30 +460,7 @@ while true; do
        node "$RUNNER_DIR/on-phase-done.mjs" "${ON_DONE_ARGS[@]}" 2>/dev/null || true
        if [[ -z "$NO_SUMMARY" && -r "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt" ]]; then
          echo "Generating execution summary (one per phase) ..."
-         set +e
-if [[ -n "$DEBUG" ]]; then
-          echo "=== summary ===" >> "$AGENT_LOG"
-          if [[ -n "$QUIET" ]]; then
-            agent -p --force --model auto \
-              --output-format text \
-              "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" >> "$AGENT_LOG" 2>&1
-          else
-            agent -p --force --model auto \
-              --output-format text \
-              "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" 2>&1 | tee -a "$AGENT_LOG"
-          fi
-        else
-          if [[ -n "$QUIET" ]]; then
-            agent -p --force --model auto \
-              --output-format text \
-              "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" > /dev/null 2>&1
-          else
-            agent -p --force --model auto \
-              --output-format text \
-              "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" 2>&1
-          fi
-        fi
-         set -e
+         run_agent "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" "summary"
          echo "Summary prompt consumed; see docs/TODO/completed/summaries/ for output."
        fi
        echo "No pending steps; stopping."
@@ -184,44 +506,15 @@ if [[ -n "$DEBUG" ]]; then
   echo "---"
   echo ""
 
-  if [[ -n "$DEBUG" ]]; then
-    echo "=== step $(basename "$STEP_FILE") ===" >> "$AGENT_LOG"
-    if [[ -n "$QUIET" ]]; then
-      echo "Running Cursor agent for step (log only: $AGENT_LOG) ..."
-      set +e
-      agent -p --force --model auto \
-        --output-format text \
-        "$(cat "$RUNNER_PROMPT")" >> "$AGENT_LOG" 2>&1
-      STEP_AGENT_EXIT=$?
-      set -e
-    else
-      echo "Running Cursor agent for step (stdout + $AGENT_LOG) ..."
-      set +e
-      agent -p --force --model auto \
-        --output-format text \
-        "$(cat "$RUNNER_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
-      STEP_AGENT_EXIT=${PIPESTATUS[0]:-$?}
-      set -e
-    fi
+  if [[ -n "$DEBUG" && -n "$QUIET" ]]; then
+    echo "Running Cursor agent for step (log only: $AGENT_LOG) ..."
+  elif [[ -n "$DEBUG" ]]; then
+    echo "Running Cursor agent for step (stdout + $AGENT_LOG) ..."
   else
-    if [[ -n "$QUIET" ]]; then
-      echo "Running Cursor agent for step ..."
-      set +e
-      agent -p --force --model auto \
-        --output-format text \
-        "$(cat "$RUNNER_PROMPT")" > /dev/null 2>&1
-      STEP_AGENT_EXIT=$?
-      set -e
-    else
-      echo "Running Cursor agent for step ..."
-      set +e
-      agent -p --force --model auto \
-        --output-format text \
-        "$(cat "$RUNNER_PROMPT")" 2>&1
-      STEP_AGENT_EXIT=$?
-      set -e
-    fi
+    echo "Running Cursor agent for step ..."
   fi
+  run_agent "$(cat "$RUNNER_PROMPT")" "step $(basename "$STEP_FILE")"
+  STEP_AGENT_EXIT=$AGENT_EXIT
   echo "Step agent finished (exit code $STEP_AGENT_EXIT)."
   RUNS=$((RUNS + 1))
 
