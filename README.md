@@ -9,32 +9,32 @@ Turn high-level feature definitions into **Agent-first TODOs**, then into **orde
 ## Process
 
 ```
-  ┌──────────────────┐
-  │   Chat / Design  │   Thinking model conversation
-  └────────┬─────────┘
-           ▼
-  ┌──────────────────┐
-  │ Feature Overview │   template 01 → docs/design/active/*.md
-  └────────┬─────────┘
-           ▼
-  ┌──────────────────┐
-  │  Agent-first TODO│   prompt 01 → docs/TODO/active/P1_03_*.md
-  └────────┬─────────┘
-           ▼
-  ┌──────────────────┐
-  │  Ordered Steps   │   prompt 02 → docs/TODO/active/steps/P1_03.01_*.md
-  └────────┬─────────┘
-           ▼
-  ┌──────────────────┐
-  │   Runner Loop    │   run-steps.sh executes one step at a time
-  │                  │   → moves completed to docs/TODO/completed/
-  │                  │   → generates summary when phase done
-  └────────┬─────────┘
-           │
-           ▼
-     ┌───────────┐
-     │  Blocker? │──yes──▶  Back to Chat to resolve questions,
-     └───────────┘          update TODO/steps, then resume runner
+  MODE        STEP                     HOW
+────────────────────────────────────────────────────────────────────────────────
+
+            ┌──────────────────┐
+  Chat      │   Design / MVP   │       THINKING MODEL, RESOLVE QUESTIONS
+  manual    └────────┬─────────┘
+                     ▼
+            ┌──────────────────┐       BREAKDOWN TO PHASES, RESOLVE QUESTIONS
+  Chat      │ Feature Overview │       @templates/01-feature-overview.template
+  manual    └────────┬─────────┘       → docs/design/active/*.md
+                     ▼
+            ┌──────────────────┐       BREAKDOWN TO TODOs, RESOLVE QUESTIONS
+  Chat      │ Agent-first TODO │       @prompts/01-breakdown-to-todos.prompt
+  manual    └────────┬─────────┘       → docs/TODO/active/P2_04_*.md
+                     ▼
+            ┌──────────────────┐       BREAKDOWN TO EXECUTION STEPS
+  Chat      │  Ordered Steps   │       @prompts/02-generate-execution-steps.prompt
+  manual    └────────┬─────────┘       → docs/TODO/active/steps/P2_04.05_*.md
+                     ▼
+            ┌──────────────────┐       EXECUTES STEPS ONE AT A TIME
+  CLI       │   Runner Loop    │       bash run-steps.sh [OPTIONS]
+  auto      └────────┬─────────┘       → docs/TODO/completed/
+                     ▼
+               ┌───────────┐
+               │  Blocker? │──yes──▶   BACK TO CHAT TO RESOLVE
+               └───────────┘
 ```
 
 ---
@@ -76,8 +76,8 @@ docs/
 ```
 
 **Naming:**
-- TODOs: `P<phase>_<seq>_<Name>.md` → `P1_03_Project_Structure.md`
-- Steps: `P<phase>_<seq>.<step>_<slug>.md` → `P1_03.05_create_app_dart.md`
+- TODOs: `P<phase>_<seq>_<Name>.md` → `P1_01_Flutter_Project_Init.md`
+- Steps: `P<phase>_<seq>.<step>_<slug>.md` → `P1_01.02_flutter_create.md`
 
 ---
 
@@ -93,20 +93,20 @@ run-steps.sh --once
 # Run exactly 5 steps, then exit
 run-steps.sh --steps 5
 
-# Run only steps for TODO P1_03 (Project Structure)
-run-steps.sh --phase P1_03
+# Run only steps for TODO P1_01 (Flutter Project Init)
+run-steps.sh --phase P1_01
 
-# Run 3 steps from phase P2_04, with debug logging
+# Run 3 steps from phase P2_04 (Offline Region Management), with debug logging
 run-steps.sh --phase P2_04 --steps 3 --debug
 
-# Run phase P1_05 silently (no agent output)
-run-steps.sh --phase P1_05 --quiet
+# Run phase P1_02 silently (no agent output)
+run-steps.sh --phase P1_02 --quiet
 
 # Run unattended (skip manual test pauses)
 run-steps.sh --phase P2_01 --skip-manual
 
 # Use a specific model
-run-steps.sh --model claude-opus-4-5-20250514-thinking --phase P1_07
+run-steps.sh --model claude-opus-4-5-20250514-thinking --phase P1_01
 
 # Combine options
 run-steps.sh --phase P2_04 --steps 2 --quiet --skip-manual
