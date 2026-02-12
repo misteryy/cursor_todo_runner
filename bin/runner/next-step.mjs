@@ -18,7 +18,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const EXECUTE_STEP_PROMPT_PATH = path.join(SCRIPT_DIR, "prompts", "03_Execute_Single_Step.prompt");
+const RUNNER_ROOT = path.join(SCRIPT_DIR, "..", "..");
+const EXECUTE_STEP_PROMPT_PATH = path.join(RUNNER_ROOT, "prompts", "03-execute-single-step.prompt");
 
 function parseArgs() {
   const args = process.argv.slice(2);

@@ -2,7 +2,7 @@
 /**
  * Moves the current step file from docs/TODO/active/steps/ to docs/TODO/completed/steps/
  * by reading the step path from docs/TODO/runner/NEXT.md or RUNNER_PROMPT.txt.
- * Run from project root: node cursor_todo_runner/accept-step.mjs (or yarn todo:accept)
+ * Run from project root: node cursor_todo_runner/bin/runner/accept-step.mjs (or yarn todo:accept)
  */
 
 import fs from "fs";

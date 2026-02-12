@@ -6,30 +6,41 @@ Turn high-level feature definitions into **Agent-first TODOs**, then into **orde
 
 ---
 
+## Project structure
+
+| Path | Purpose |
+|------|--------|
+| `bin/runner/` | Main workflow: `run-steps.sh`, `next-step.mjs`, `accept-step.mjs`, `generate-summary.mjs` |
+| `bin/debug/` | Debug helpers (prefix `debug-`): `debug-agent.mjs`, `debug-runner.mjs`, `debug-output.mjs` |
+| `prompts/` | Cursor prompts (01–04), kebab-case: `01-breakdown-high-level-plan.prompt`, `03-execute-single-step.prompt`, etc. |
+| `templates/` | Feature overview and agent-first TODO templates: `01-feature-overview.template`, `02-agent-first-todo.template` |
+
+---
+
 ## How to use
 
 **Runner in project:** from project root:
 ```bash
-node <runner-path>/todo-next-step.mjs [--phase ID]   # resolve next step
-bash <runner-path>/todo-run-steps.sh [OPTIONS] [ROOT]   # run steps in a loop
+node <runner-path>/bin/runner/next-step.mjs [--phase ID]   # resolve next step
+bash <runner-path>/bin/runner/run-steps.sh [OPTIONS] [ROOT]   # run steps in a loop
 ```
 
 **Runner elsewhere:** set `CURSOR_TODO_RUNNER_DIR` to the runner repo root, then:
 ```bash
 export CURSOR_TODO_RUNNER_DIR=~/.local/share/todo-runner
-bash path/to/todo-run-steps.sh
+bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 ```
 
-**One step only:** `todo-run-steps.sh --once`  
-**N steps:** `todo-run-steps.sh --steps N`  
-**One phase/todo:** `todo-run-steps.sh --phase P1_03`  
-**Quieter run (log only):** `todo-run-steps.sh --quiet` or `CURSOR_TODO_QUIET=1 todo-run-steps.sh`
+**One step only:** `run-steps.sh --once`  
+**N steps:** `run-steps.sh --steps N`  
+**One phase/todo:** `run-steps.sh --phase P1_03`  
+**Quieter run (log only):** `run-steps.sh --quiet` or `CURSOR_TODO_QUIET=1 run-steps.sh`
 
 ---
 
 ## Parameters
 
-### todo-run-steps.sh
+### run-steps.sh
 
 | Option | Description |
 |--------|-------------|
@@ -42,13 +53,13 @@ bash path/to/todo-run-steps.sh
 
 **Env:** `CURSOR_TODO_QUIET=1` — same as `--quiet`.
 
-### todo-next-step.mjs
+### next-step.mjs
 
 | Option | Description |
 |--------|-------------|
 | `--phase ID` | Only consider steps whose id starts with `ID`. |
 
-### todo-generate-summary.mjs
+### generate-summary.mjs
 
 | Option | Description |
 |--------|-------------|
@@ -63,9 +74,9 @@ bash path/to/todo-run-steps.sh
 
 - **Layout:** Project needs `docs/TODO/active/` (TODOs + `steps/`), `docs/TODO/completed/`, `docs/TODO/summaries/`, `docs/TODO/runner/`, `docs/TODO/action_required/`. Add `gitignore.example` contents to your `.gitignore`.
 - **Step files:** In `docs/TODO/active/steps/`, names like `P1_03.1_slug.md`. Runner uses "Depends on" and step id prefix (e.g. `P1_03`) for ordering.
-- **Blockers:** If the agent fails verification, it writes a file to `docs/TODO/action_required/`. The runner stops until that file is removed. Then run `node …/accept-step.mjs` if needed and re-run.
+- **Blockers:** If the agent fails verification, it writes a file to `docs/TODO/action_required/`. The runner stops until that file is removed. Then run `node …/bin/runner/accept-step.mjs` if needed and re-run.
 - **Summaries:** Generated automatically at end of run (or on interrupt). One file per TODO touched, in `docs/TODO/summaries/`.
-- **Prompt source:** Execute prompt is `prompts/03_Execute_Single_Step.prompt`; `todo-next-step.mjs` writes `RUNNER_PROMPT.txt` with the step file @-mentioned.
+- **Prompt source:** Execute prompt is `prompts/03-execute-single-step.prompt`; `next-step.mjs` writes `RUNNER_PROMPT.txt` with the step file @-mentioned.
 
 ---
 
@@ -98,8 +109,8 @@ bash path/to/todo-run-steps.sh
                                         ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  PHASE 4: Execute steps (runner loop)                                        │
-│  todo-next-step.mjs → writes NEXT.md + RUNNER_PROMPT.txt                     │
-│  todo-run-steps.sh → agent -p … "$(cat RUNNER_PROMPT.txt)" (prompt 03)      │
+│  next-step.mjs → writes NEXT.md + RUNNER_PROMPT.txt                          │
+│  run-steps.sh → agent -p … "$(cat RUNNER_PROMPT.txt)" (prompt 03)            │
 │  On success: accept-step.mjs moves step to completed/                        │
 │  Loop until no pending steps or --once / --steps limit                       │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -107,9 +118,9 @@ bash path/to/todo-run-steps.sh
                                         ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  PHASE 5: Summary (automatic)                                                 │
-│  todo-generate-summary.mjs (prompt 04) → docs/TODO/summaries/*.summary.md   │
+│  generate-summary.mjs (prompt 04) → docs/TODO/summaries/*.summary.md         │
 │  One per TODO touched; run at exit (or skip with --skip_summary)             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Repo layout:** `templates/` (01 overview, 02 TODO), `prompts/` (01–04), `todo-next-step.mjs`, `todo-run-steps.sh`, `accept-step.mjs`, `todo-generate-summary.mjs`.
+**Repo layout:** `bin/runner/` (run-steps.sh, next-step.mjs, accept-step.mjs, generate-summary.mjs), `bin/debug/` (debug-agent.mjs, debug-runner.mjs, debug-output.mjs), `templates/`, `prompts/`.

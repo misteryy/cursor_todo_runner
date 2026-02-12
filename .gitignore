@@ -1,2 +1,11 @@
 .cursorrules
 logs/
+
+# Dependencies
+node_modules/
+
+# Yarn
+.yarn/cache
+.yarn/install-state.gz
+.yarn/unplugged
+.pnp.*

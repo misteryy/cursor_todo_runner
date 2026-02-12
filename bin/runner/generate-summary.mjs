@@ -4,12 +4,12 @@
  * Run from project root after steps have been executed.
  *
  * Usage:
- *   node todo-generate-summary.mjs [options]
+ *   node generate-summary.mjs [options]
  *
  * Options:
  *   --todo ID        Generate summary for specific TODO (e.g., P1_02). Required unless --session.
  *   --session        Generate summaries for all TODOs touched in the current session
- *                    (based on runner/session_todos.json written by todo-run-steps.sh).
+ *                    (based on runner/session_todos.json written by run-steps.sh).
  *   --outcome TYPE   Force outcome: SUCCESS, PARTIAL, or BLOCKED. Auto-detected if omitted.
  *   --dry-run        Print what would be generated without writing files.
  *
@@ -24,7 +24,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const SUMMARY_PROMPT_PATH = path.join(SCRIPT_DIR, "prompts", "04_Generate_Summary.prompt");
+const RUNNER_ROOT = path.join(SCRIPT_DIR, "..", "..");
+const SUMMARY_PROMPT_PATH = path.join(RUNNER_ROOT, "prompts", "04-generate-summary.prompt");
 
 const ROOT = process.cwd();
 const TODO_DIR = path.join(ROOT, "docs", "TODO");
@@ -214,7 +215,7 @@ function main() {
   const { todoId, session, outcome: forcedOutcome, dryRun } = parseArgs();
 
   if (!todoId && !session) {
-    console.error("Usage: todo-generate-summary.mjs --todo ID | --session [--outcome TYPE] [--dry-run]");
+    console.error("Usage: generate-summary.mjs --todo ID | --session [--outcome TYPE] [--dry-run]");
     process.exit(1);
   }
 
@@ -275,7 +276,7 @@ function main() {
   console.log("Run the agent with SUMMARY_PROMPT.txt to generate the summary file(s).");
 }
 
-// Export functions for use by todo-run-steps.sh
+// Export functions for use by run-steps.sh
 export { saveSessionTodos, loadSessionTodos, todoIdFromStepFilename };
 
 main();

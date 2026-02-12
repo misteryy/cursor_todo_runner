@@ -1,0 +1,25 @@
+{
+  "name": "cursor-todo-runner",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI-assisted step-by-step feature implementation workflow automation",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "moduleFileExtensions": ["js", "mjs"],
+    "testMatch": ["**/*.test.mjs"],
+    "collectCoverageFrom": [
+      "bin/**/*.mjs",
+      "!bin/**/*.test.mjs"
+    ]
+  },
+  "packageManager": "yarn@1.22.22"
+}

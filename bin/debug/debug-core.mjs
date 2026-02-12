@@ -1,15 +1,14 @@
-#!/usr/bin/env node
 /**
- * Parses agent stream-json output and prints "our" debug: event timeline
- * (tool_call started/completed, thinking, assistant, result) with timestamps.
- * Reads from stdin or file path (first arg).
- * Usage: node format-agent-debug.mjs [path]  OR  cat agent_output.log | node format-agent-debug.mjs
+ * Core logic for debug utilities - extracted for testability.
+ * This module exports pure functions that can be tested in isolation.
  */
 
-import fs from "fs";
-import readline from "readline";
-
-function summarizeToolCall(tc) {
+/**
+ * Summarize a tool call for debug output
+ * @param {object} tc - Tool call object
+ * @returns {string} Summary string
+ */
+export function summarizeToolCall(tc) {
   if (!tc || typeof tc !== "object") return "";
   const r =
     tc.readToolCall ||
@@ -25,7 +24,12 @@ function summarizeToolCall(tc) {
   return "";
 }
 
-function summarizeResult(res) {
+/**
+ * Summarize a result event for debug output
+ * @param {object} res - Result object
+ * @returns {string} Summary string
+ */
+export function summarizeResult(res) {
   if (!res || typeof res !== "object") return "";
   const parts = [];
   if (res.duration_ms != null) parts.push(`duration_ms=${res.duration_ms}`);
@@ -35,7 +39,12 @@ function summarizeResult(res) {
   return parts.join(" ");
 }
 
-function parseLine(line) {
+/**
+ * Parse a JSON line from agent output
+ * @param {string} line - Line to parse
+ * @returns {object|null} Parsed object or null
+ */
+export function parseLine(line) {
   line = line.trim();
   if (!line.startsWith("{")) return null;
   try {
@@ -45,7 +54,12 @@ function parseLine(line) {
   }
 }
 
-function formatEvent(ob) {
+/**
+ * Format an event object for debug output
+ * @param {object} ob - Event object
+ * @returns {string} Formatted string
+ */
+export function formatEvent(ob) {
   const type = ob.type;
   const subtype = ob.subtype || "";
   const ts = ob.timestamp_ms != null ? new Date(ob.timestamp_ms).toISOString() : "";
@@ -68,8 +82,7 @@ function formatEvent(ob) {
     case "assistant":
       return `${ts} assistant message${id}`;
     case "result": {
-      const res = ob;
-      const sum = summarizeResult(res);
+      const sum = summarizeResult(ob);
       const text = ob.result ?? "";
       const err = text && (text.includes("error Command failed") || text.includes("exit code"));
       return `${ts} result ${ob.subtype ?? ""} ${sum}${err ? "\n  >>> " + text.trim().split("\n").slice(-3).join("\n  >>> ") : ""}`;
@@ -79,7 +92,12 @@ function formatEvent(ob) {
   }
 }
 
-function inferRunKind(userText) {
+/**
+ * Infer the run kind from user text
+ * @param {string} userText - User message text
+ * @returns {"step"|"summary"|"unknown"} Run kind
+ */
+export function inferRunKind(userText) {
   if (!userText || typeof userText !== "string") return "unknown";
   if (userText.includes("We are executing this step file") || userText.includes("active/steps/"))
     return "step";
@@ -88,61 +106,49 @@ function inferRunKind(userText) {
   return "unknown";
 }
 
-async function main() {
-  const file = process.argv[2];
-  const stream = file
-    ? fs.createReadStream(file, { encoding: "utf8" })
-    : process.stdin;
-  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
-
-  let lastResult = null;
-  const nonJsonLines = [];
-  let runIndex = 0;
-
-  for await (const line of rl) {
-    const ob = parseLine(line);
-    if (ob) {
-      if (ob.type === "system" && ob.subtype === "init") {
-        runIndex += 1;
-        console.log(`\n--- Run ${runIndex} ---`);
-      }
-      if (ob.type === "user" && ob.message?.content) {
-        const text = ob.message.content.find((c) => c.type === "text")?.text;
-        const kind = inferRunKind(text);
-        if (kind !== "unknown") console.log(`  (${kind})`);
-      }
-      if (ob.type === "result") lastResult = ob;
-      console.log(formatEvent(ob));
-    } else if (line.trim()) {
-      nonJsonLines.push(line);
-    }
-  }
-
-  if (nonJsonLines.length > 0) {
-    console.log("\n--- Non-JSON (stderr / yarn / shell) ---");
-    nonJsonLines.forEach((l) => console.log(l));
-  }
-
-  if (lastResult?.result != null && typeof lastResult.result === "string") {
-    const r = lastResult.result;
-    if (r.includes("error Command failed") || r.includes("exit code")) {
-      console.log("\n--- Final run outcome (from result payload) ---");
-      console.log(r.trim());
-    }
-  }
-
-  const hasExit1 = nonJsonLines.some(
-    (l) => l.includes("error Command failed with exit code 1") || l.includes("exit code 1")
-  );
-  if (hasExit1) {
-    console.log(
-      "\n--- Note: Exit code 1 can be from the runner (e.g. step blocked, or step file missing) or from an agent run."
-    );
-    console.log("  If a step did not run or was not moved: check docs/TODO/action_required/ and that the step file exists in docs/TODO/active/steps/.");
+/**
+ * Check if a line is an agent stream JSON line
+ * @param {string} line - Line to check
+ * @returns {boolean} True if it's an agent stream line
+ */
+export function isAgentStreamLine(line) {
+  const t = line.trim();
+  if (!t.startsWith("{")) return false;
+  try {
+    const ob = JSON.parse(line);
+    if (ob && typeof ob !== "object") return false;
+    if (ob.type && ["tool_call", "thinking", "assistant", "result", "system"].includes(ob.type))
+      return true;
+    if (ob.message && ob.message.role === "assistant") return true;
+    if (ob.type === "user") return true;
+    return false;
+  } catch {
+    return false;
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+/**
+ * Clean ANSI escape codes from a line
+ * @param {string} line - Line to clean
+ * @returns {string} Cleaned line
+ */
+export function cleanAnsiCodes(line) {
+  return line
+    .replace(/\r$/, "")
+    .replace(/\x1b\[[0-9;]*m/g, "")
+    .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+}
+
+/**
+ * Format raw log content for output
+ * @param {string} raw - Raw content
+ * @param {number} maxLineLength - Maximum line length before truncation
+ * @returns {string} Formatted content
+ */
+export function formatLogContent(raw, maxLineLength = 500) {
+  raw = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  raw = raw.replace(/\x1b\[[0-9;]*m/g, "");
+  raw = raw.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+  const lines = raw.split("\n").map((l) => (l.length > maxLineLength ? l.slice(0, maxLineLength) + "…" : l));
+  return lines.join("\n");
+}

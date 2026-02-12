@@ -3,7 +3,7 @@
  * Prints only cursor_todo_runner debug: shell echoes and our scripts' output.
  * Strips Cursor agent stream-json (tool_call, thinking, assistant, result).
  * Reads from stdin or file path (first arg).
- * Usage: node format-runner-debug.mjs [path]  OR  cat run.log | node format-runner-debug.mjs
+ * Usage: node debug-runner.mjs [path]  OR  cat run.log | node debug-runner.mjs
  */
 
 import fs from "fs";

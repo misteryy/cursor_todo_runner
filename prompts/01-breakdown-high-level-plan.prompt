@@ -2,7 +2,7 @@ You are given a high-level feature overview @HighLevelTemplate
 
 Your task:
 - Decompose this overview into multiple focused TODOs.
-- Each TODO must use the provided @02_Agent-First_TODO.template
+- Each TODO must use the provided @02-agent-first-todo.template
 - Each TODO should solve one coherent problem.
 - Do NOT repeat the entire overview in each TODO.
 - Preserve all core invariants and constraints from the overview.

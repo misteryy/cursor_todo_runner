@@ -3,7 +3,7 @@
  * Formats runner agent output for readability: strips raw control chars,
  * normalizes line endings, and optionally truncates very long lines.
  * Reads from docs/TODO/runner/agent_output.log (or path as first arg).
- * Run from project root: node cursor_todo_runner/format-runner-output.mjs [path] (or yarn todo:format-output)
+ * Run from project root: node cursor_todo_runner/bin/debug/debug-output.mjs [path] (or yarn todo:format-output)
  */
 
 import fs from "fs";
