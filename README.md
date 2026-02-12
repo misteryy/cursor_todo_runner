@@ -12,7 +12,7 @@ Turn high-level feature definitions into **Agent-first TODOs**, then into **orde
 |------|--------|
 | `bin/runner/` | Main workflow: `run-steps.sh`, `next-step.mjs`, `accept-step.mjs`, `on-phase-done.mjs` |
 | `bin/debug/` | Debug helpers (prefix `debug-`): `debug-agent.mjs`, `debug-runner.mjs`, `debug-output.mjs` |
-| `prompts/` | Cursor prompts (01–04): breakdown, generate steps, execute single step (uses `fragments/` for output level), execution summary. `fragments/output-minimal.txt` and `output-zero.txt` are injected into the execute prompt via `@OutputInstruction`. |
+| `prompts/` | Cursor prompts (01–04): breakdown, generate steps, execute single step (uses `fragments/` for output level), execution summary. Default: `output-zero.txt`. With `--debug`: `output-minimal.txt`. Injected via `@OutputInstruction`. |
 | `templates/` | Feature overview and agent-first TODO templates: `01-feature-overview.template`, `02-agent-first-todo.template` |
 
 ---
@@ -35,8 +35,9 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 **N steps:** `run-steps.sh --steps N`  
 **One phase/todo:** `run-steps.sh --phase P1_03`  
 **Skip execution summary when phase finishes:** `run-steps.sh --no-summary`  
-**Quieter run (mute agent stdout):** `run-steps.sh --quiet` or `CURSOR_TODO_QUIET=1 run-steps.sh`  
-**Log agent output to file (for debugging):** `run-steps.sh --debug` — writes to `docs/TODO/runner/agent_output.log`; use with `debug-agent.mjs` etc.
+**Default:** Zero-output fragment, agent stdout visible (readable event timeline), runner prompts and alerts always on stdout.  
+**Quiet:** `run-steps.sh --quiet` or `CURSOR_TODO_QUIET=1` — agent stdout to /dev/null; runner prompts still printed.  
+**Debug:** `run-steps.sh --debug` — minimal output fragment, visible agent stdout, timestamped log file with run parameters (root, phase, once, steps, etc.) and agent text output.
 
 ---
 
@@ -50,8 +51,8 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 | `--steps N` | Run at most N steps, then exit. |
 | `--phase ID` | Only run steps whose id starts with `ID` (e.g. `P1_03`). |
 | `--no-summary` | When phase finishes, do not generate execution summary (TODO is still moved to completed). |
-| `--quiet` | Mute agent stdout (output discarded unless `--debug`). Summary still runs unless you pass `--no-summary`. |
-| `--debug` | Log agent output to `docs/TODO/runner/agent_output.log` (and to stdout when not `--quiet`). Use with `debug-agent.mjs` etc. When not set, no log file is written. |
+| `--quiet` | Send agent stdout to /dev/null. Runner prompts and alerts remain on stdout. |
+| `--debug` | Use minimal output fragment, show agent stdout, log to `docs/TODO/runner/agent_output_YYYYMMDD-HHMMSS.log` with run parameters (run_timestamp, root, phase, once, steps, no_summary, quiet) at the top. |
 | `[ROOT]` | Project root; default is current directory. |
 
 **Env:** `CURSOR_TODO_QUIET=1` — same as `--quiet`.
@@ -69,7 +70,7 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 - **Layout:** Runner creates `docs/TODO/active/steps/`, `docs/TODO/completed/steps/`, `docs/TODO/completed/summaries/`, `docs/TODO/runner/`, and `docs/TODO/action_required/` if missing. Add `gitignore.example` contents to your `.gitignore`.
 - **Step files:** In `docs/TODO/active/steps/`, names like `P1_03.1_slug.md`. Runner uses "Depends on" and step id prefix (e.g. `P1_03`) for ordering.
 - **Blockers:** If the agent fails verification, it writes a file to `docs/TODO/action_required/`. The runner stops until that file is removed. Then run `node …/bin/runner/accept-step.mjs` if needed and re-run.
-- **Prompt source:** Execute prompt is `prompts/03-execute-single-step.prompt` (placeholder `@OutputInstruction` is replaced by `prompts/fragments/output-minimal.txt` or `output-zero.txt` when `--quiet`). `next-step.mjs` writes `NEXT.md` and `RUNNER_PROMPT.txt`. When not using `--quiet`, run-steps.sh echoes NEXT.md and the start of RUNNER_PROMPT.txt before each agent run for debugging.
+- **Prompt source:** Execute prompt is `prompts/03-execute-single-step.prompt` (placeholder `@OutputInstruction` is replaced by `prompts/fragments/output-zero.txt` by default or `output-minimal.txt` when `--debug`). `next-step.mjs` writes `NEXT.md` and `RUNNER_PROMPT.txt`. Runner always echoes NEXT.md and the start of RUNNER_PROMPT.txt before each agent run (even with `--quiet`).
 
 ---
 

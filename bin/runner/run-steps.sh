@@ -8,11 +8,11 @@
 #   --steps N        Run at most N steps, then exit.
 #   --phase ID       Only run steps whose id starts with ID (e.g. P1_03).
 #   --no-summary     When phase finishes, do not generate execution summary (still move TODO to completed).
-#   --quiet          Mute agent stdout (output discarded unless --debug).
-#   --debug          Log agent output to docs/TODO/runner/agent_output.log (and to stdout when not --quiet). Use with debug-agent.mjs etc.
+#   --quiet          Send agent stdout to /dev/null (runner prompts and alerts always on stdout).
+#   --debug          Use minimal output fragment, show agent stdout, log to timestamped file with run parameters.
 #   [ROOT]           Project root (default: current directory).
 #
-# Env: CURSOR_TODO_QUIET=1 same effect as --quiet.
+# Default: zero-output fragment, agent stdout visible (readable form), runner alerts each time. Env: CURSOR_TODO_QUIET=1 same as --quiet.
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -80,11 +80,24 @@ mkdir -p "$ROOT/docs/TODO/runner"
 mkdir -p "$ROOT/docs/TODO/action_required"
 
 NEXT_ARGS=()
-[[ -n "$PHASE" ]] && NEXT_ARGS+=(--phase "$PHASE")
-[[ -n "$QUIET" ]] && NEXT_ARGS+=(--quiet)
+[[ -n "$PHASE" ]] && NEXwaT_ARGS+=(--phase "$PHASE")
+# Zero-output fragment by default; minimal fragment only when --debug
+[[ -z "$DEBUG" ]] && NEXT_ARGS+=(--quiet)
 
-AGENT_LOG="$ROOT/docs/TODO/runner/agent_output.log"
 RUNNER_DIR_FILES="$ROOT/docs/TODO/runner"
+if [[ -n "$DEBUG" ]]; then
+  AGENT_LOG="$ROOT/docs/TODO/runner/agent_output_$(date +%Y%m%d-%H%M%S).log"
+  {
+    echo "run_timestamp=$(date -Iseconds)"
+    echo "root=$ROOT"
+    echo "phase=${PHASE:-}"
+    echo "once=${ONCE:-}"
+    echo "steps=${STEPS:-}"
+    echo "no_summary=${NO_SUMMARY:-}"
+    echo "quiet=${QUIET:-}"
+    echo "---"
+  } >> "$AGENT_LOG"
+fi
 RUNNER_PROMPT="$RUNNER_DIR_FILES/RUNNER_PROMPT.txt"
 NEXT_FILE="$RUNNER_DIR_FILES/NEXT.md"
 RUNS=0
@@ -103,27 +116,28 @@ while true; do
        if [[ -z "$NO_SUMMARY" && -r "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt" ]]; then
          echo "Generating execution summary (one per phase) ..."
          set +e
-         if [[ -n "$DEBUG" ]]; then
-           if [[ -n "$QUIET" ]]; then
-             agent -p --force --model auto \
-               --output-format stream-json \
-               "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" >> "$AGENT_LOG" 2>&1
-           else
-             agent -p --force --model auto \
-               --output-format stream-json \
-               "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" 2>&1 | tee -a "$AGENT_LOG"
-           fi
-         else
-           if [[ -n "$QUIET" ]]; then
-             agent -p --force --model auto \
-               --output-format stream-json \
-               "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" > /dev/null 2>&1
-           else
-             agent -p --force --model auto \
-               --output-format stream-json \
-               "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" 2>&1
-           fi
-         fi
+if [[ -n "$DEBUG" ]]; then
+          echo "=== summary ===" >> "$AGENT_LOG"
+          if [[ -n "$QUIET" ]]; then
+            agent -p --force --model auto \
+              --output-format text \
+              "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" >> "$AGENT_LOG" 2>&1
+          else
+            agent -p --force --model auto \
+              --output-format text \
+              "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" 2>&1 | tee -a "$AGENT_LOG"
+          fi
+        else
+          if [[ -n "$QUIET" ]]; then
+            agent -p --force --model auto \
+              --output-format text \
+              "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" > /dev/null 2>&1
+          else
+            agent -p --force --model auto \
+              --output-format text \
+              "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" 2>&1
+          fi
+        fi
          set -e
          echo "Summary prompt consumed; see docs/TODO/completed/summaries/ for output."
        fi
@@ -160,25 +174,23 @@ while true; do
     exit 1
   fi
 
-  # Always show which step we're on (basic progress)
+  # Runner prompts and alerts always on stdout (even when --quiet)
   echo ""
   echo "Next step: $(basename "$STEP_FILE") (run $((RUNS + 1)))"
-  # Optional: full NEXT.md and RUNNER_PROMPT preview when not --quiet
-  if [[ -z "$QUIET" ]]; then
-    echo "--- NEXT.md ($NEXT_FILE) ---"
-    head -30 "$NEXT_FILE"
-    echo "--- RUNNER_PROMPT ($RUNNER_PROMPT, first 15 lines) ---"
-    head -15 "$RUNNER_PROMPT"
-    echo "---"
-  fi
+  echo "--- NEXT.md ($NEXT_FILE) ---"
+  head -30 "$NEXT_FILE"
+  echo "--- RUNNER_PROMPT ($RUNNER_PROMPT, first 15 lines) ---"
+  head -15 "$RUNNER_PROMPT"
+  echo "---"
   echo ""
 
   if [[ -n "$DEBUG" ]]; then
+    echo "=== step $(basename "$STEP_FILE") ===" >> "$AGENT_LOG"
     if [[ -n "$QUIET" ]]; then
       echo "Running Cursor agent for step (log only: $AGENT_LOG) ..."
       set +e
       agent -p --force --model auto \
-        --output-format stream-json \
+        --output-format text \
         "$(cat "$RUNNER_PROMPT")" >> "$AGENT_LOG" 2>&1
       STEP_AGENT_EXIT=$?
       set -e
@@ -186,7 +198,7 @@ while true; do
       echo "Running Cursor agent for step (stdout + $AGENT_LOG) ..."
       set +e
       agent -p --force --model auto \
-        --output-format stream-json \
+        --output-format text \
         "$(cat "$RUNNER_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
       STEP_AGENT_EXIT=${PIPESTATUS[0]:-$?}
       set -e
@@ -196,7 +208,7 @@ while true; do
       echo "Running Cursor agent for step ..."
       set +e
       agent -p --force --model auto \
-        --output-format stream-json \
+        --output-format text \
         "$(cat "$RUNNER_PROMPT")" > /dev/null 2>&1
       STEP_AGENT_EXIT=$?
       set -e
@@ -204,7 +216,7 @@ while true; do
       echo "Running Cursor agent for step ..."
       set +e
       agent -p --force --model auto \
-        --output-format stream-json \
+        --output-format text \
         "$(cat "$RUNNER_PROMPT")" 2>&1
       STEP_AGENT_EXIT=$?
       set -e
