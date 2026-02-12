@@ -10,9 +10,9 @@ Turn high-level feature definitions into **Agent-first TODOs**, then into **orde
 
 | Path | Purpose |
 |------|--------|
-| `bin/runner/` | Main workflow: `run-steps.sh`, `next-step.mjs`, `accept-step.mjs` |
+| `bin/runner/` | Main workflow: `run-steps.sh`, `next-step.mjs`, `accept-step.mjs`, `on-phase-done.mjs` |
 | `bin/debug/` | Debug helpers (prefix `debug-`): `debug-agent.mjs`, `debug-runner.mjs`, `debug-output.mjs` |
-| `prompts/` | Cursor prompts (01–03), kebab-case: `01-breakdown-high-level-plan.prompt`, `03-execute-single-step.prompt`, etc. |
+| `prompts/` | Cursor prompts (01–04): breakdown, generate steps, execute single step, execution summary (`04-execution-summary.prompt`) |
 | `templates/` | Feature overview and agent-first TODO templates: `01-feature-overview.template`, `02-agent-first-todo.template` |
 
 ---
@@ -34,6 +34,7 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 **One step only:** `run-steps.sh --once`  
 **N steps:** `run-steps.sh --steps N`  
 **One phase/todo:** `run-steps.sh --phase P1_03`  
+**Skip execution summary when phase finishes:** `run-steps.sh --no-summary`  
 **Quieter run (log only):** `run-steps.sh --quiet` or `CURSOR_TODO_QUIET=1 run-steps.sh`
 
 ---
@@ -47,6 +48,7 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 | `--once` | Run at most one step, then exit. |
 | `--steps N` | Run at most N steps, then exit. |
 | `--phase ID` | Only run steps whose id starts with `ID` (e.g. `P1_03`). |
+| `--no-summary` | When phase finishes, do not generate execution summary (TODO is still moved to completed). |
 | `--quiet` | Agent output only to `docs/TODO/runner/agent_output.log` (no stdout). Debug with `tail -f docs/TODO/runner/agent_output.log`. When not set, NEXT.md and RUNNER_PROMPT.txt (first lines) are echoed before each step. |
 | `[ROOT]` | Project root; default is current directory. |
 
@@ -62,7 +64,7 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 
 ## Other details
 
-- **Layout:** Project needs `docs/TODO/active/` (TODOs + `steps/`), `docs/TODO/completed/`, `docs/TODO/runner/`, `docs/TODO/action_required/`. Add `gitignore.example` contents to your `.gitignore`.
+- **Layout:** Project needs `docs/TODO/active/` (TODOs + `steps/`), `docs/TODO/completed/` (and `completed/summaries/` for execution summaries), `docs/TODO/runner/`, `docs/TODO/action_required/`. Add `gitignore.example` contents to your `.gitignore`.
 - **Step files:** In `docs/TODO/active/steps/`, names like `P1_03.1_slug.md`. Runner uses "Depends on" and step id prefix (e.g. `P1_03`) for ordering.
 - **Blockers:** If the agent fails verification, it writes a file to `docs/TODO/action_required/`. The runner stops until that file is removed. Then run `node …/bin/runner/accept-step.mjs` if needed and re-run.
 - **Prompt source:** Execute prompt is `prompts/03-execute-single-step.prompt`; `next-step.mjs` writes `NEXT.md` and `RUNNER_PROMPT.txt` with the step file @-mentioned. When not using `--quiet`, run-steps.sh echoes NEXT.md and the start of RUNNER_PROMPT.txt before each agent run for debugging.
@@ -102,6 +104,8 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 │  run-steps.sh → agent -p … "$(cat RUNNER_PROMPT.txt)" (prompt 03)            │
 │  On success: accept-step.mjs moves step to completed/                        │
 │  Loop until no pending steps or --once / --steps limit                       │
+│  When no pending steps: on-phase-done.mjs moves TODO to completed (if needed),│
+│  then one execution summary per phase → docs/TODO/completed/summaries/       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

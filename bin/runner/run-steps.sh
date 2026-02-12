@@ -7,6 +7,7 @@
 #   --once           Run at most one step, then exit.
 #   --steps N        Run at most N steps, then exit.
 #   --phase ID       Only run steps whose id starts with ID (e.g. P1_03).
+#   --no-summary     When phase finishes, do not generate execution summary (still move TODO to completed).
 #   --quiet          Send agent output only to agent_output.log (no stdout). Use for faster/quieter runs; debug with: tail -f docs/TODO/runner/agent_output.log
 #   [ROOT]           Project root (default: current directory).
 #
@@ -45,12 +46,14 @@ ONCE=""
 STEPS=""
 PHASE=""
 ROOT=""
+NO_SUMMARY=""
 QUIET="${CURSOR_TODO_QUIET:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --once)         ONCE=1; shift ;;
     --steps)        STEPS="$2"; shift 2 ;;
     --phase)        PHASE="$2"; shift 2 ;;
+    --no-summary)   NO_SUMMARY=1; shift ;;
     --quiet)        QUIET=1; shift ;;
     *)              ROOT="$1"; shift ;;
   esac
@@ -80,7 +83,27 @@ while true; do
   NEXT_EXIT=$?
   case "$NEXT_EXIT" in
     0) ;; # Next step written; proceed to run agent
-    2) echo "No pending steps; stopping."
+    2) # Phase/TODO finished: move TODO to completed (if needed), then generate execution summary once (unless --no-summary)
+       ON_DONE_ARGS=()
+       [[ -n "$PHASE" ]] && ON_DONE_ARGS+=(--phase "$PHASE")
+       [[ -n "$NO_SUMMARY" ]] && ON_DONE_ARGS+=(--no-summary)
+       node "$RUNNER_DIR/on-phase-done.mjs" "${ON_DONE_ARGS[@]}" 2>/dev/null || true
+       if [[ -z "$NO_SUMMARY" && -r "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt" ]]; then
+         echo "Generating execution summary (one per phase) ..."
+         set +e
+         if [[ -n "$QUIET" ]]; then
+           agent -p --force --model auto \
+             --output-format stream-json --stream-partial-output \
+             "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" >> "$AGENT_LOG" 2>&1
+         else
+           agent -p --force --model auto \
+             --output-format stream-json --stream-partial-output \
+             "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" 2>&1 | tee -a "$AGENT_LOG"
+         fi
+         set -e
+         echo "Summary prompt consumed; see docs/TODO/completed/summaries/ for output."
+       fi
+       echo "No pending steps; stopping."
        exit 0 ;;
     1) echo "Step blocked or action required; resolve then re-run."
        echo "  If you just ran a step, the agent may not have moved it — from project root run: node $RUNNER_DIR/accept-step.mjs (or yarn todo:accept), then re-run."
