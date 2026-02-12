@@ -8,7 +8,8 @@
 #   --steps N        Run at most N steps, then exit.
 #   --phase ID       Only run steps whose id starts with ID (e.g. P1_03).
 #   --no-summary     When phase finishes, do not generate execution summary (still move TODO to completed).
-#   --quiet          Send agent output only to agent_output.log (no stdout). Use for faster/quieter runs; debug with: tail -f docs/TODO/runner/agent_output.log
+#   --quiet          Mute agent stdout (output discarded unless --debug).
+#   --debug          Log agent output to docs/TODO/runner/agent_output.log (and to stdout when not --quiet). Use with debug-agent.mjs etc.
 #   [ROOT]           Project root (default: current directory).
 #
 # Env: CURSOR_TODO_QUIET=1 same effect as --quiet.
@@ -48,6 +49,7 @@ PHASE=""
 ROOT=""
 NO_SUMMARY=""
 QUIET="${CURSOR_TODO_QUIET:-}"
+DEBUG=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --once)         ONCE=1; shift ;;
@@ -55,6 +57,7 @@ while [[ $# -gt 0 ]]; do
     --phase)        PHASE="$2"; shift 2 ;;
     --no-summary)   NO_SUMMARY=1; shift ;;
     --quiet)        QUIET=1; shift ;;
+    --debug)        DEBUG=1; shift ;;
     *)              ROOT="$1"; shift ;;
   esac
 done
@@ -84,6 +87,7 @@ while true; do
   case "$NEXT_EXIT" in
     0) ;; # Next step written; proceed to run agent
     2) # Phase/TODO finished: move TODO to completed (if needed), then generate execution summary once (unless --no-summary)
+       echo "No pending steps; phase finished."
        ON_DONE_ARGS=()
        [[ -n "$PHASE" ]] && ON_DONE_ARGS+=(--phase "$PHASE")
        [[ -n "$NO_SUMMARY" ]] && ON_DONE_ARGS+=(--no-summary)
@@ -91,14 +95,26 @@ while true; do
        if [[ -z "$NO_SUMMARY" && -r "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt" ]]; then
          echo "Generating execution summary (one per phase) ..."
          set +e
-         if [[ -n "$QUIET" ]]; then
-           agent -p --force --model auto \
-             --output-format stream-json --stream-partial-output \
-             "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" >> "$AGENT_LOG" 2>&1
+         if [[ -n "$DEBUG" ]]; then
+           if [[ -n "$QUIET" ]]; then
+             agent -p --force --model auto \
+               --output-format stream-json \
+               "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" >> "$AGENT_LOG" 2>&1
+           else
+             agent -p --force --model auto \
+               --output-format stream-json \
+               "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" 2>&1 | tee -a "$AGENT_LOG"
+           fi
          else
-           agent -p --force --model auto \
-             --output-format stream-json --stream-partial-output \
-             "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" 2>&1 | tee -a "$AGENT_LOG"
+           if [[ -n "$QUIET" ]]; then
+             agent -p --force --model auto \
+               --output-format stream-json \
+               "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" > /dev/null 2>&1
+           else
+             agent -p --force --model auto \
+               --output-format stream-json \
+               "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" 2>&1
+           fi
          fi
          set -e
          echo "Summary prompt consumed; see docs/TODO/completed/summaries/ for output."
@@ -136,33 +152,55 @@ while true; do
     exit 1
   fi
 
-  # Debug: show what NEXT.md and RUNNER_PROMPT contain (when not --quiet)
+  # Always show which step we're on (basic progress)
+  echo ""
+  echo "Next step: $(basename "$STEP_FILE") (run $((RUNS + 1)))"
+  # Optional: full NEXT.md and RUNNER_PROMPT preview when not --quiet
   if [[ -z "$QUIET" ]]; then
-    echo ""
     echo "--- NEXT.md ($NEXT_FILE) ---"
     head -30 "$NEXT_FILE"
     echo "--- RUNNER_PROMPT ($RUNNER_PROMPT, first 15 lines) ---"
     head -15 "$RUNNER_PROMPT"
     echo "---"
-    echo ""
   fi
+  echo ""
 
-  if [[ -n "$QUIET" ]]; then
-    echo "Running Cursor agent for step (log only: $AGENT_LOG) ..."
-    set +e
-    agent -p --force --model auto \
-      --output-format stream-json --stream-partial-output \
-      "$(cat "$RUNNER_PROMPT")" >> "$AGENT_LOG" 2>&1
-    STEP_AGENT_EXIT=$?
-    set -e
+  if [[ -n "$DEBUG" ]]; then
+    if [[ -n "$QUIET" ]]; then
+      echo "Running Cursor agent for step (log only: $AGENT_LOG) ..."
+      set +e
+      agent -p --force --model auto \
+        --output-format stream-json \
+        "$(cat "$RUNNER_PROMPT")" >> "$AGENT_LOG" 2>&1
+      STEP_AGENT_EXIT=$?
+      set -e
+    else
+      echo "Running Cursor agent for step (stdout + $AGENT_LOG) ..."
+      set +e
+      agent -p --force --model auto \
+        --output-format stream-json \
+        "$(cat "$RUNNER_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
+      STEP_AGENT_EXIT=${PIPESTATUS[0]:-$?}
+      set -e
+    fi
   else
-    echo "Running Cursor agent for step (streaming to stdout and $AGENT_LOG) ..."
-    set +e
-    agent -p --force --model auto \
-      --output-format stream-json --stream-partial-output \
-      "$(cat "$RUNNER_PROMPT")" 2>&1 | tee -a "$AGENT_LOG"
-    STEP_AGENT_EXIT=${PIPESTATUS[0]:-$?}
-    set -e
+    if [[ -n "$QUIET" ]]; then
+      echo "Running Cursor agent for step ..."
+      set +e
+      agent -p --force --model auto \
+        --output-format stream-json \
+        "$(cat "$RUNNER_PROMPT")" > /dev/null 2>&1
+      STEP_AGENT_EXIT=$?
+      set -e
+    else
+      echo "Running Cursor agent for step ..."
+      set +e
+      agent -p --force --model auto \
+        --output-format stream-json \
+        "$(cat "$RUNNER_PROMPT")" 2>&1
+      STEP_AGENT_EXIT=$?
+      set -e
+    fi
   fi
   echo "Step agent finished (exit code $STEP_AGENT_EXIT)."
   RUNS=$((RUNS + 1))

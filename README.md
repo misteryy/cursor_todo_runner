@@ -35,7 +35,8 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 **N steps:** `run-steps.sh --steps N`  
 **One phase/todo:** `run-steps.sh --phase P1_03`  
 **Skip execution summary when phase finishes:** `run-steps.sh --no-summary`  
-**Quieter run (log only):** `run-steps.sh --quiet` or `CURSOR_TODO_QUIET=1 run-steps.sh`
+**Quieter run (mute agent stdout):** `run-steps.sh --quiet` or `CURSOR_TODO_QUIET=1 run-steps.sh`  
+**Log agent output to file (for debugging):** `run-steps.sh --debug` — writes to `docs/TODO/runner/agent_output.log`; use with `debug-agent.mjs` etc.
 
 ---
 
@@ -49,7 +50,8 @@ bash "$CURSOR_TODO_RUNNER_DIR/bin/runner/run-steps.sh"
 | `--steps N` | Run at most N steps, then exit. |
 | `--phase ID` | Only run steps whose id starts with `ID` (e.g. `P1_03`). |
 | `--no-summary` | When phase finishes, do not generate execution summary (TODO is still moved to completed). |
-| `--quiet` | Agent output only to `docs/TODO/runner/agent_output.log` (no stdout). Debug with `tail -f docs/TODO/runner/agent_output.log`. When not set, NEXT.md and RUNNER_PROMPT.txt (first lines) are echoed before each step. |
+| `--quiet` | Mute agent stdout (output discarded unless `--debug`). Summary is skipped. |
+| `--debug` | Log agent output to `docs/TODO/runner/agent_output.log` (and to stdout when not `--quiet`). Use with `debug-agent.mjs` etc. When not set, no log file is written. |
 | `[ROOT]` | Project root; default is current directory. |
 
 **Env:** `CURSOR_TODO_QUIET=1` — same as `--quiet`.

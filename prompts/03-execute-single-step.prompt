@@ -2,16 +2,16 @@ We are executing this step file: @StepFile
 
 Implement only what this step describes. Do not anticipate or implement future steps.
 
-Output (runner is unattended; transcript is logged for debugging):
-- Be concise: no step-by-step narration, no lengthy explanations.
-- Emit only what is needed: (1) brief summary of what changed, (2) verification result (command run + pass/fail). One short paragraph at the end is enough.
-- Prefer doing over saying: use tools; avoid long preambles or postambles.
+Output (runner is unattended; minimize tokens and time — do not stream long replies):
+- Emit only the minimum: (1) one-line summary of what changed, (2) verification command run and pass/fail. No step-by-step narration, no explanations, no preambles or postambles.
+- Prefer doing over saying: use tools; do not output progress or reasoning unless it is essential.
+- Keep your final message to a few sentences at most. Lengthy output wastes time and tokens.
 
 Rules:
 - Do not refactor or change code outside the scope of this step.
 - After implementing, run the "How to verify" section for this step (commands, tests, or checks). If the step defines tests or a verification command, run it and report pass/fail.
 - Stop when this step is complete and verified.
-- Summarize: (1) what changed, (2) verification result (what you ran and outcome). Do not create or edit files in docs/TODO/summaries/ — the runner generates one summary per phase at the end of the run.
+- End with a minimal summary: (1) what changed, (2) verification result. Do not create or edit files in docs/TODO/summaries/ — the runner generates one summary per phase at the end of the run.
 - Do not move or rename the step file or any file in docs/TODO/active/steps/ or docs/TODO/completed/steps/ — the runner marks the step complete after you finish.
 - If this step file instructs you to move the parent Agent-First TODO to completed (e.g. "last step" instruction), do that: mv the TODO file from docs/TODO/active/ to docs/TODO/completed/, same filename.
 
