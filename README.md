@@ -35,7 +35,7 @@ Turn high-level feature definitions into **Agent-first TODOs**, then into **orde
      ┌───────────┐
      │  Blocker? │──yes──▶  Back to Chat to resolve questions,
      └───────────┘          update TODO/steps, then resume runner
-```</thinking>
+```
 
 ---
 
