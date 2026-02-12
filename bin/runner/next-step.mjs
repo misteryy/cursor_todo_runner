@@ -11,7 +11,7 @@
  *
  * Options:
  *   --phase ID   Only consider steps whose id starts with ID (e.g. P1_03 for P1_03.1, P1_03.2).
- *   --quiet      Use zero-output fragment for the execute prompt (prompts/fragments/output-zero.txt).
+ *   --quiet      Use no-output fragment for the execute prompt (prompts/fragments/output-zero.txt). Default: output-step-only.txt.
  */
 
 import fs from "fs";
@@ -54,7 +54,7 @@ function loadExecuteStepPrompt(stepPath) {
     throw new Error(`${EXECUTE_STEP_PROMPT_PATH} must contain @StepFile placeholder`);
   }
   template = template.replace("@StepFile", "@" + stepPath);
-  const fragmentName = useZeroOutput ? "output-zero.txt" : "output-minimal.txt";
+  const fragmentName = useZeroOutput ? "output-zero.txt" : "output-step-only.txt";
   const fragmentPath = path.join(FRAGMENTS_DIR, fragmentName);
   if (!template.includes("@OutputInstruction")) {
     throw new Error(`${EXECUTE_STEP_PROMPT_PATH} must contain @OutputInstruction placeholder`);

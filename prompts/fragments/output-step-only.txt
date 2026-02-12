@@ -1,0 +1,3 @@
+Output:
+- State which task you are working on: one line naming the step from this step file (e.g. step id or title). Do not stream long replies, narrate progress, or add preambles/postambles.
+- After completing: one-line summary of what changed and verification pass/fail. No step-by-step narration.

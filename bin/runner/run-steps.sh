@@ -9,10 +9,10 @@
 #   --phase ID       Only run steps whose id starts with ID (e.g. P1_03).
 #   --no-summary     When phase finishes, do not generate execution summary (still move TODO to completed).
 #   --quiet          Send agent stdout to /dev/null (runner prompts and alerts always on stdout).
-#   --debug          Use minimal output fragment, show agent stdout, log to timestamped file with run parameters.
+#   --debug          Show agent stdout, log to timestamped file with run parameters.
 #   [ROOT]           Project root (default: current directory).
 #
-# Default: zero-output fragment, agent stdout visible (readable form), runner alerts each time. Env: CURSOR_TODO_QUIET=1 same as --quiet.
+# Default: step-only output fragment (agent states which task from step file). With --quiet: no-output fragment, agent stdout to /dev/null. Env: CURSOR_TODO_QUIET=1 same as --quiet.
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -81,8 +81,8 @@ mkdir -p "$ROOT/docs/TODO/action_required"
 
 NEXT_ARGS=()
 [[ -n "$PHASE" ]] && NEXT_ARGS+=(--phase "$PHASE")
-# Zero-output fragment by default; minimal fragment only when --debug
-[[ -z "$DEBUG" ]] && NEXT_ARGS+=(--quiet)
+# No-output fragment only when --quiet
+[[ -n "$QUIET" ]] && NEXT_ARGS+=(--quiet)
 
 RUNNER_DIR_FILES="$ROOT/docs/TODO/runner"
 if [[ -n "$DEBUG" ]]; then
