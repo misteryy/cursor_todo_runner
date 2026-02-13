@@ -469,8 +469,34 @@ run_phase_done_and_exit() {
 
 NEXT_FILE="$RUNNER_DIR_FILES/NEXT.md"
 RUNS=0
+ACTION_REQUIRED_DIR="$ROOT/docs/TODO/action_required"
+ACTIVE_STEPS_DIR="$ROOT/docs/TODO/active/steps"
+COMPLETED_STEPS_DIR="$ROOT/docs/TODO/completed/steps"
 
 while true; do
+  # Process resolved_* files: delete file and move corresponding step to completed (by step id in filename)
+  if [[ -d "$ACTION_REQUIRED_DIR" ]]; then
+    for resolved_file in "$ACTION_REQUIRED_DIR"/resolved_*.md; do
+      [[ -f "$resolved_file" ]] || continue
+      base=$(basename "$resolved_file" .md)
+      if [[ "$base" =~ ^resolved_(P[0-9]+_[0-9]+\.[0-9]+)(_|$) ]]; then
+        step_id="${BASH_REMATCH[1]}"
+        for step_candidate in "$ACTIVE_STEPS_DIR"/${step_id}_*.md; do
+          if [[ -f "$step_candidate" ]]; then
+            step_basename=$(basename "$step_candidate")
+            mkdir -p "$COMPLETED_STEPS_DIR"
+            mv "$step_candidate" "$COMPLETED_STEPS_DIR/$step_basename"
+            echo "Action resolved; moved step to completed: $step_basename"
+            node "$RUNNER_DIR/on-step-completed.mjs" "$step_basename" 2>/dev/null || true
+            break
+          fi
+        done
+      fi
+      echo "Action resolved; removing: $(basename "$resolved_file")"
+      rm -f "$resolved_file"
+    done
+  fi
+
   node "$RUNNER_DIR/next-step.mjs" "${NEXT_ARGS[@]}"
   NEXT_EXIT=$?
   case "$NEXT_EXIT" in
@@ -533,18 +559,13 @@ while true; do
 
   # Runner owns step-file moves: move step to completed so next iteration can run the following step.
   # (We do not rely on the agent to move the file.)
-  ACTION_REQUIRED_DIR="$ROOT/docs/TODO/action_required"
-  
-  # Delete any resolved_* files (agent resolved the action and renamed take_action_* to resolved_*)
+  # Delete any resolved_* from this run (agent renamed take_action_* to resolved_*), then move step if no blockers left.
   if [[ -d "$ACTION_REQUIRED_DIR" ]]; then
     for resolved_file in "$ACTION_REQUIRED_DIR"/resolved_*.md; do
-      if [[ -f "$resolved_file" ]]; then
-        echo "Action resolved by agent; removing: $(basename "$resolved_file")"
-        rm -f "$resolved_file"
-      fi
+      [[ -f "$resolved_file" ]] && rm -f "$resolved_file" && echo "Action resolved by agent; removed: $(basename "$resolved_file")"
     done
   fi
-  
+
   # Block on any .md in action_required except resolved_*
   HAS_ACTION_FILES=""
   if [[ -d "$ACTION_REQUIRED_DIR" ]]; then
@@ -556,7 +577,6 @@ while true; do
     done
   fi
   if [[ -z "$HAS_ACTION_FILES" && -f "$STEP_FILE" ]]; then
-    COMPLETED_STEPS_DIR="$ROOT/docs/TODO/completed/steps"
     mkdir -p "$COMPLETED_STEPS_DIR"
     STEP_BASENAME="$(basename "$STEP_FILE")"
     DEST="$COMPLETED_STEPS_DIR/$STEP_BASENAME"
