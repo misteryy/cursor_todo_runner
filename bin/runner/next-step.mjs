@@ -184,7 +184,9 @@ function main() {
   }
 
   const next = ready[0];
-  const stepPath = path.join("docs", "TODO", "active", "steps", next.filename);
+  const stepFileAbs = path.join(ROOT, "docs", "TODO", "active", "steps", next.filename);
+  // Path for prompt: relative to runner package root so @-mention resolves when workspace is the runner (e.g. apps/backend/cursor_todo_runner)
+  const stepPath = path.relative(RUNNER_ROOT, stepFileAbs);
 
   // Dry-run mode: just report status and exit without writing files
   if (dryRun) {
