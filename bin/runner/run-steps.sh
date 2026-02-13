@@ -15,6 +15,8 @@
 #   [ROOT]           Project root (default: current directory).
 #
 # Default: step-only output fragment (agent states which task from step file). With --quiet: no-output fragment, agent stdout to /dev/null. Env: CURSOR_TODO_QUIET=1 same as --quiet.
+#
+# Exit codes: 0 = success (steps run and/or no steps left); 1 = action required / step blocked, or RUNNER_PROMPT missing; 127 = runner/CLI not found; other = next-step.mjs exit code.
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -450,6 +452,21 @@ run_agent() {
   set -e
 }
 
+# Phase finished: run on-phase-done, optional summary, then exit 0.
+run_phase_done_and_exit() {
+  ON_DONE_ARGS=()
+  [[ -n "$PHASE" ]] && ON_DONE_ARGS+=(--phase "$PHASE")
+  [[ -n "$NO_SUMMARY" ]] && ON_DONE_ARGS+=(--no-summary)
+  node "$RUNNER_DIR/on-phase-done.mjs" "${ON_DONE_ARGS[@]}" 2>/dev/null || true
+  if [[ -z "$NO_SUMMARY" && -r "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt" ]]; then
+    echo "Generating execution summary (one per phase) ..."
+    run_agent "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" "summary"
+    echo "Summary prompt consumed; see docs/TODO/completed/summaries/ for output."
+  fi
+  echo "No pending steps; stopping."
+  exit 0
+}
+
 NEXT_FILE="$RUNNER_DIR_FILES/NEXT.md"
 RUNS=0
 
@@ -457,33 +474,23 @@ while true; do
   node "$RUNNER_DIR/next-step.mjs" "${NEXT_ARGS[@]}"
   NEXT_EXIT=$?
   case "$NEXT_EXIT" in
-    0) ;; # Next step written; proceed to run agent
-    2) # Phase/TODO finished: move TODO to completed (if needed), then generate execution summary once (unless --no-summary)
-       echo "No pending steps; phase finished."
-       ON_DONE_ARGS=()
-       [[ -n "$PHASE" ]] && ON_DONE_ARGS+=(--phase "$PHASE")
-       [[ -n "$NO_SUMMARY" ]] && ON_DONE_ARGS+=(--no-summary)
-       node "$RUNNER_DIR/on-phase-done.mjs" "${ON_DONE_ARGS[@]}" 2>/dev/null || true
-       if [[ -z "$NO_SUMMARY" && -r "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt" ]]; then
-         echo "Generating execution summary (one per phase) ..."
-         run_agent "$(cat "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt")" "summary"
-         echo "Summary prompt consumed; see docs/TODO/completed/summaries/ for output."
-       fi
-       echo "No pending steps; stopping."
-       exit 0 ;;
+    0) ;; # Next step written (NEXT.md present) or no steps left; check NEXT.md below
+    2) # Legacy: no pending steps (older next-step.mjs)
+       run_phase_done_and_exit ;;
     1) echo "Step blocked or action required; resolve then re-run."
        echo "  If you just ran a step, the agent may not have moved it — from project root run: node $RUNNER_DIR/accept-step.mjs (or yarn todo:accept), then re-run."
        exit 1 ;;
     *) echo "next-step.mjs exited with $NEXT_EXIT; stopping."
        exit "$NEXT_EXIT" ;;
   esac
+  # When next-step exits 0 with no steps left it does not write NEXT.md. Treat that as phase finished.
+  if [[ ! -r "$NEXT_FILE" ]]; then
+    echo "No pending steps; phase finished."
+    run_phase_done_and_exit
+  fi
   # Resolve step file path from NEXT.md (single source of truth written by next-step).
   # Using NEXT.md avoids depending on RUNNER_PROMPT format. Parsing is done with set +e so
   # sed/head never trigger set -e and cause a spurious exit 1 (e.g. from pipeline or missing file).
-  if [[ ! -r "$NEXT_FILE" ]]; then
-    echo "NEXT.md missing or unreadable: $NEXT_FILE (next-step should have written it); stopping."
-    exit 1
-  fi
   set +e
   STEP_RAW=$(sed -n 's/.*\*\*Step file:\*\* `\([^`]*\)`.*/\1/p' "$NEXT_FILE" 2>/dev/null | head -1 | tr -d '\r')
   set -e

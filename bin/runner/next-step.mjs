@@ -5,9 +5,9 @@
  * Run from project root. If action_required has any file, prints that and exits.
  *
  * Exit codes:
- *   0  Next step written; runner may invoke the agent.
+ *   0  Next step written (NEXT.md present); or no steps left to process (successful completion).
  *   1  Action required or step blocked (dependencies not met).
- *   2  No pending steps (for this phase or at all); runner must not invoke the agent.
+ *   2  Only with --dry-run: no pending steps (allows runner to detect phase complete without writing).
  *
  * Options:
  *   --phase ID      Only consider steps whose id starts with ID (e.g. P1_03 for P1_03.1, P1_03.2).
@@ -131,7 +131,10 @@ function getPendingSteps() {
 }
 
 function topoNext(pending, completedIds) {
-  const ready = pending.filter((s) => s.dependsOn.every((d) => completedIds.has(d)));
+  const pendingIds = new Set(pending.map((s) => s.id));
+  // Dependency is satisfied if completed OR not in current pending set (e.g. completed/steps was purged or dependency never had a step file).
+  const satisfied = (d) => completedIds.has(d) || !pendingIds.has(d);
+  const ready = pending.filter((s) => s.dependsOn.every(satisfied));
   return ready;
 }
 
@@ -155,12 +158,12 @@ function main() {
     pending = pending.filter((s) => s.id && (s.id === phaseFilter || s.id.startsWith(phaseFilter + ".")));
     if (pending.length === 0) {
       console.log(`No pending steps matching phase '${phaseFilter}' in docs/TODO/active/steps/.`);
-      process.exit(2);
+      process.exit(dryRun ? 2 : 0);
     }
   }
   if (pending.length === 0) {
     console.log("No pending steps (no step files in docs/TODO/active/steps/).");
-    process.exit(2);
+    process.exit(dryRun ? 2 : 0);
   }
 
   let ready = topoNext(pending, completedIds);
@@ -174,7 +177,7 @@ function main() {
   ready = ready.filter((s) => fs.existsSync(path.join(activeStepsAbs, s.filename)));
   if (ready.length === 0) {
     console.log("No runnable step (step file(s) missing, e.g. already completed); stopping.");
-    process.exit(2);
+    process.exit(dryRun ? 2 : 0);
   }
 
   const next = ready[0];
