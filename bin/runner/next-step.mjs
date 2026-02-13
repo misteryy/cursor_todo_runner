@@ -140,7 +140,10 @@ function topoNext(pending, completedIds) {
 
 function actionRequiredFiles() {
   if (!fs.existsSync(ACTION_REQUIRED_DIR)) return [];
-  return fs.readdirSync(ACTION_REQUIRED_DIR).filter((f) => f.endsWith(".md"));
+  // Block on any .md file except resolved_* (those are cleared by the runner)
+  return fs.readdirSync(ACTION_REQUIRED_DIR).filter((f) => 
+    f.endsWith(".md") && !f.startsWith("resolved_")
+  );
 }
 
 function main() {

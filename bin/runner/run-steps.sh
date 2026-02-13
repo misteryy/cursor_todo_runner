@@ -534,9 +534,26 @@ while true; do
   # Runner owns step-file moves: move step to completed so next iteration can run the following step.
   # (We do not rely on the agent to move the file.)
   ACTION_REQUIRED_DIR="$ROOT/docs/TODO/action_required"
+  
+  # Delete any resolved_* files (agent resolved the action and renamed take_action_* to resolved_*)
+  if [[ -d "$ACTION_REQUIRED_DIR" ]]; then
+    for resolved_file in "$ACTION_REQUIRED_DIR"/resolved_*.md; do
+      if [[ -f "$resolved_file" ]]; then
+        echo "Action resolved by agent; removing: $(basename "$resolved_file")"
+        rm -f "$resolved_file"
+      fi
+    done
+  fi
+  
+  # Block on any .md in action_required except resolved_*
   HAS_ACTION_FILES=""
   if [[ -d "$ACTION_REQUIRED_DIR" ]]; then
-    HAS_ACTION_FILES=$(find "$ACTION_REQUIRED_DIR" -maxdepth 1 -name '*.md' -print 2>/dev/null || true)
+    for f in "$ACTION_REQUIRED_DIR"/*.md; do
+      [[ -f "$f" ]] || continue
+      [[ "$(basename "$f")" == resolved_* ]] && continue
+      HAS_ACTION_FILES=1
+      break
+    done
   fi
   if [[ -z "$HAS_ACTION_FILES" && -f "$STEP_FILE" ]]; then
     COMPLETED_STEPS_DIR="$ROOT/docs/TODO/completed/steps"
