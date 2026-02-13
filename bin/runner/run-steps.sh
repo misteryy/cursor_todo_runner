@@ -534,11 +534,13 @@ while true; do
   if [[ -z "$HAS_ACTION_FILES" && -f "$STEP_FILE" ]]; then
     COMPLETED_STEPS_DIR="$ROOT/docs/TODO/completed/steps"
     mkdir -p "$COMPLETED_STEPS_DIR"
-    DEST="$COMPLETED_STEPS_DIR/$(basename "$STEP_FILE")"
+    STEP_BASENAME="$(basename "$STEP_FILE")"
+    DEST="$COMPLETED_STEPS_DIR/$STEP_BASENAME"
     mv "$STEP_FILE" "$DEST"
     sync 2>/dev/null || true
     sleep 2
     echo "Step marked completed (runner). Moved to: $DEST"
+    node "$RUNNER_DIR/on-step-completed.mjs" "$STEP_BASENAME" 2>/dev/null || true
   fi
 
   # Check if phase is complete before exiting (for --once or --steps limit)

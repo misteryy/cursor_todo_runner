@@ -2,18 +2,32 @@
 /**
  * Moves the current step file from docs/TODO/active/steps/ to docs/TODO/completed/steps/
  * by reading the step path from docs/TODO/runner/NEXT.md or RUNNER_PROMPT.txt.
+ * If no sibling steps remain for that TODO, moves the parent TODO to completed.
  * Run from project root: node cursor_todo_runner/bin/runner/accept-step.mjs (or yarn todo:accept)
  */
 
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+import { spawnSync } from "child_process";
 
 const ROOT = process.cwd();
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUNNER_DIR = path.join(ROOT, "docs", "TODO", "runner");
 const NEXT_FILE = path.join(RUNNER_DIR, "NEXT.md");
 const PROMPT_FILE = path.join(RUNNER_DIR, "RUNNER_PROMPT.txt");
 const ACTIVE_STEPS = path.join(ROOT, "docs", "TODO", "active", "steps");
 const COMPLETED_STEPS = path.join(ROOT, "docs", "TODO", "completed", "steps");
+
+function runOnStepCompleted(filename) {
+  const onStepCompleted = path.join(SCRIPT_DIR, "on-step-completed.mjs");
+  if (fs.existsSync(onStepCompleted)) {
+    spawnSync(process.execPath, [onStepCompleted, filename], {
+      cwd: ROOT,
+      stdio: "inherit",
+    });
+  }
+}
 
 function findStepPath() {
   for (const file of [NEXT_FILE, PROMPT_FILE]) {
@@ -39,6 +53,7 @@ function main() {
   if (!fs.existsSync(src)) {
     if (fs.existsSync(dest)) {
       console.log("Step already in completed (agent moved it):", filename);
+      runOnStepCompleted(filename);
       process.exit(0); // Success — step was completed
     }
     console.error("Step file not found:", src);
@@ -48,6 +63,7 @@ function main() {
   if (!fs.existsSync(COMPLETED_STEPS)) fs.mkdirSync(COMPLETED_STEPS, { recursive: true });
   fs.renameSync(src, dest);
   console.log("Moved to completed:", filename);
+  runOnStepCompleted(filename);
 }
 
 main();
