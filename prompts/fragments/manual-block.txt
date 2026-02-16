@@ -1,6 +1,5 @@
 Manual testing:
 - If this step requires manual testing (UI verification, user interaction, behavior that cannot be automated), create a file in docs/TODO/action_required/ with clear instructions for what the user should test.
 - Use a filename like manual_test_<stepId>.md (e.g., manual_test_P1_03.1.md).
-- Include: what to run, what to check, expected behavior, and how to confirm success.
-- The runner will pause until this file is removed after the user completes manual testing.
+- Include: what to run, what to check, expected behavior, and how to confirm success. In the file, instruct the user that when they have finished manual testing they must rename this file to resolved_* (e.g. manual_test_P1_03.1.md → resolved_P1_03.1.md), not delete it; the runner will then process it and continue.
 - Only create this file when manual testing is truly necessary (meaningful UI/UX verification, not just "it compiles").

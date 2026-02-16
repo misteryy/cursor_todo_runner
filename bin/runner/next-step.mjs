@@ -166,7 +166,7 @@ function main() {
   }
   if (pending.length === 0) {
     console.log("No pending steps (no step files in docs/TODO/active/steps/).");
-    process.exit(dryRun ? 2 : 0);
+    process.exit(0);
   }
 
   let ready = topoNext(pending, completedIds);

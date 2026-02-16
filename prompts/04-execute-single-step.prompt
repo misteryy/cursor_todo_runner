@@ -24,6 +24,6 @@ When you encounter an existing take_action_* file in docs/TODO/action_required/:
 - This file describes an issue that needs to be resolved by the AI agent (you).
 - Read the file, understand the problem, and implement the fix.
 - After successfully resolving the issue (implementing the fix and verifying it works), rename the file from take_action_* to resolved_* (e.g., take_action_P1_01.01_issue.md becomes resolved_P1_01.01_issue.md).
-- The runner will then delete the resolved file and continue with the next step.
+- The runner will then process the resolved file and continue with the next step.
 
 Do not commit to git.
