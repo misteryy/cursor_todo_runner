@@ -72,6 +72,14 @@ done
 ROOT="${ROOT:-$(pwd)}"
 # Normalize to absolute path so shell and node (process.cwd()) agree on runner files
 [[ -n "$ROOT" && "$ROOT" != /* ]] && ROOT="$(cd "$ROOT" && pwd)"
+# If runner is in a subfolder (e.g. apps/backend/cursor_todo_runner), find project root by docs/TODO
+if [[ ! -d "$ROOT/docs/TODO" ]]; then
+  find_root="$ROOT"
+  while [[ -n "$find_root" && "$find_root" != "/" ]]; do
+    find_root="$(dirname "$find_root")"
+    [[ -d "$find_root/docs/TODO" ]] && ROOT="$find_root" && break
+  done
+fi
 cd "$ROOT"
 
 export PATH="$HOME/.local/bin:$PATH"
