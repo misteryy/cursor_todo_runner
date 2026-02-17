@@ -179,6 +179,31 @@ See **Parameters** for all options.
 
 ---
 
+## User prompt fragments
+
+Extend any numbered prompt with project-specific instructions by placing files in `prompts/fragments/user/`. Files matching `NN_*.txt` are appended to the corresponding `NN-*.prompt`.
+
+```
+prompts/fragments/user/
+├── 03_project_context.txt    → appended to 03-generate-steps.prompt
+├── 04_testing_rules.txt      → appended to 04-execute-single-step.prompt
+└── 04_style_guide.txt        → appended to 04-execute-single-step.prompt
+```
+
+**Naming:** `<prompt-number>_<description>.txt`
+- `03_*` → `03-generate-steps.prompt`
+- `04_*` → `04-execute-single-step.prompt`
+
+Multiple fragments for the same prompt are concatenated in alphabetical order. Each fragment is prefixed with a `# User fragment: <filename>` header in the final prompt.
+
+**Use cases:**
+- Project-specific coding standards
+- Framework constraints
+- Testing requirements
+- Domain terminology
+
+---
+
 ## Runner layout
 
 | Path | Purpose |
@@ -186,4 +211,5 @@ See **Parameters** for all options.
 | `bin/runner/` | `run-steps.sh`, `next-step.mjs`, `accept-step.mjs`, `on-phase-done.mjs` |
 | `bin/debug/` | `debug-agent.mjs`, `debug-runner.mjs`, `debug-output.mjs` |
 | `prompts/` | Prompts 01–04 + `fragments/` for output levels |
+| `prompts/fragments/user/` | User-defined prompt extensions (see above) |
 | `templates/` | Feature overview and agent-first TODO templates |

@@ -1,6 +1,10 @@
 .cursorrules
 logs/
 
+# User-specific fragments (keep .gitkeep, ignore user content)
+prompts/fragments/user/*
+!prompts/fragments/user/.gitkeep
+
 # Dependencies
 node_modules/
 

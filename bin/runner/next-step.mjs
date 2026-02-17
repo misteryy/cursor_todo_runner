@@ -24,6 +24,7 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUNNER_ROOT = path.join(SCRIPT_DIR, "..", "..");
 const EXECUTE_STEP_PROMPT_PATH = path.join(RUNNER_ROOT, "prompts", "04-execute-single-step.prompt");
 const FRAGMENTS_DIR = path.join(RUNNER_ROOT, "prompts", "fragments");
+const USER_FRAGMENTS_DIR = path.join(FRAGMENTS_DIR, "user");
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -81,7 +82,51 @@ function loadExecuteStepPrompt(stepPath) {
   const manualFragment = fs.readFileSync(manualFragmentPath, "utf8").trim();
   template = template.replace("@ManualTestInstruction", manualFragment);
 
+  // Append user fragments matching the prompt number (e.g., 04_*.txt for 04-execute-single-step.prompt)
+  const promptNumber = extractPromptNumber(EXECUTE_STEP_PROMPT_PATH);
+  if (promptNumber) {
+    const userFragments = loadUserFragments(promptNumber);
+    if (userFragments) {
+      template += "\n\n" + userFragments;
+    }
+  }
+
   return template;
+}
+
+/**
+ * Extract the two-digit prompt number from a prompt filename.
+ * E.g., "04-execute-single-step.prompt" -> "04"
+ * @param {string} promptPath - Path to the prompt file
+ * @returns {string|null} - Two-digit number or null if not found
+ */
+function extractPromptNumber(promptPath) {
+  const filename = path.basename(promptPath);
+  const match = filename.match(/^(\d{2})-/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Load user-defined fragments from prompts/fragments/user/ that match a prompt number.
+ * Files matching NN_*.txt (e.g., 04_testing.txt) are loaded and concatenated.
+ * @param {string} promptNumber - Two-digit prompt number (e.g., "04")
+ * @returns {string|null} - Concatenated fragment content, or null if none found
+ */
+function loadUserFragments(promptNumber) {
+  if (!fs.existsSync(USER_FRAGMENTS_DIR)) return null;
+  
+  const files = fs.readdirSync(USER_FRAGMENTS_DIR)
+    .filter((f) => f.startsWith(promptNumber + "_") && f.endsWith(".txt"))
+    .sort();
+  
+  if (files.length === 0) return null;
+  
+  const contents = files.map((f) => {
+    const content = fs.readFileSync(path.join(USER_FRAGMENTS_DIR, f), "utf8").trim();
+    return `# User fragment: ${f}\n${content}`;
+  });
+  
+  return contents.join("\n\n");
 }
 
 const STEP_ID_REGEX = /P\d+_\d+\.\d+/g;
