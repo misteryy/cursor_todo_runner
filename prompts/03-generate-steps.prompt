@@ -22,5 +22,7 @@ Rules:
 - Do NOT include instructions to move files in any step — the runner handles moving step files and TODOs to completed automatically.
 - If there are open questions that block decomposition, list them and stop; do not create step files until resolved.
 - Do not commit to git.
+- Step numbers must reflect intended implementation order (01 before 02, etc.).
+- GUI triggers before functionality: when implementing UI features (modals, screens, panels), always implement the button/trigger that opens the feature BEFORE implementing the feature itself. This enables manual testing of the UI flow at each step. Example: a "Select Course" button step should precede the course selector modal step.
 
 Create only the step files. No summary document unless the TODO explicitly asks for one.

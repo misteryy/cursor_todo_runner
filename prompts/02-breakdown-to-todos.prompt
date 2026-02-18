@@ -18,3 +18,4 @@ Output:
 - Filename pattern: P{phase}_{number:2d}_{short_slug}.md — do NOT include the word "TODO" in the filename.
   Examples: P1_01_Flutter_Project_Init.md, P1_02_Dependencies_And_Analysis.md (not P1_TODO_01_...).
   Use phase from the overview (e.g. Phase 1 → P1); number each TODO 01, 02, … within that phase.
+- TODO numbers must reflect intended implementation order (01 before 02, etc.)
