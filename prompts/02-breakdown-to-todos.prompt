@@ -8,12 +8,21 @@ Your task:
 - Preserve all core invariants and constraints from the overview.
 - Surface design decisions and tradeoffs explicitly.
 - Assume Context7 will be used for framework and library details.
-- If any open questions do not create document yet and let's resolve together. Give at leat 3 of your suggestions with short explanation why, for each of the questions  
+- If any open questions do not create document yet and let's resolve together. Give at least 3 of your suggestions with short explanation why, for each of the questions.
+
+Starting Point:
+- If the overview already includes suggested Agent-First TODOs, use them as a starting point.
+- Refine, split, merge, or reorder as needed—do not blindly copy.
+- Add missing TODOs if the suggestions are incomplete.
 
 Output:
-- 3–5 TODOs
+- Number of TODOs depends on phase complexity:
+  - Simple phases: 3–5 TODOs
+  - Moderate phases: 5–8 TODOs
+  - Complex phases: 8–12+ TODOs (split further if any single TODO exceeds scope)
 - Each TODO standalone and executable by an agent
 - Keep each TODO concise (2–4 pages max)
+- If a TODO grows beyond 4 pages, split it into smaller sub-TODOs
 - Store each TODO file in docs/TODO/active/
 - Filename pattern: P{phase}_{version}_{short_slug}.md — do NOT include the word "TODO" in the filename.
   - phase: from the overview filename (e.g. P01 → 1, P02.5 → 2.5)
