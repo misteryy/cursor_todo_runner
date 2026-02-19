@@ -19,6 +19,7 @@ On successful completion:
 
 When verification does NOT pass (e.g. command fails, environment missing, tests fail):
 - Create exactly one markdown file in docs/TODO/action_required/ describing what failed and what the user must do to fix it. Use a clear filename, e.g. take_action_P1_01.01_environment_verification.md. The runner will not run further steps until this file is resolved.
+- At the end of the take_action file, include a "Resolution" section with: `## Resolution\n\nWhen this issue is resolved, rename this file from \`take_action_*\` to \`resolved_*\` (e.g., \`take_action_P1_01.01_issue.md\` → \`resolved_P1_01.01_issue.md\`). The runner will then continue with the next step.`
 
 When you encounter an existing take_action_* file in docs/TODO/action_required/:
 - This file describes an issue that needs to be resolved by the AI agent (you).
