@@ -120,13 +120,13 @@ run-steps.sh --phase P1_02 --quiet
 run-steps.sh --phase P2_01 --skip_manual
 
 # Use a specific model for all steps
-run-steps.sh --model claude-opus-4-5-20250514-thinking --phase P1_01
+run-steps.sh --model claude-4.5-opus-high-thinking --phase P1_01
 
 # Use a specific model for GUI steps only
-run-steps.sh --GUI_model claude-opus-4-5-20250514 --phase P2_04
+run-steps.sh --GUI_model claude-4.5-opus-high --phase P2_04
 
 # Use different models for GUI and non-GUI steps
-run-steps.sh --model claude-sonnet-4-20250514 --GUI_model claude-opus-4-5-20250514
+run-steps.sh --model claude-4.5-sonnet --GUI_model claude-4.5-opus-high
 
 # Combine options
 run-steps.sh --phase P2_04 --steps 2 --quiet --skip_manual
@@ -160,9 +160,9 @@ See **Parameters** for all options.
 | Model | Notes |
 |-------|-------|
 | `auto` | Default — Cursor picks |
-| `claude-opus-4-5-20250514` | High capability |
-| `claude-opus-4-5-20250514-thinking` | Extended thinking |
-| `claude-sonnet-4-20250514` | Fast and capable |
+| `claude-4.5-opus-high` | High capability |
+| `claude-4.5-opus-high-thinking` | Extended thinking |
+| `claude-4.5-sonnet` | Fast and capable |
 | `gpt-5.2` | OpenAI flagship |
 | `gpt-5.2-mini` | Faster, lower cost |
 | `gpt-4o` | Multimodal, fast |
@@ -185,7 +185,7 @@ See **Parameters** for all options.
 - **Blockers:** Failed verification → file in `action_required/`; runner pauses until resolved.
 - **Manual testing:** Manual steps write instructions to `action_required/`; use `--skip_manual` for unattended runs.
 - **Execute prompt:** `prompts/04-execute-single-step.prompt`; output level via `prompts/fragments/output-step-only.txt` or `output-zero.txt` (`--quiet`).
-- **GUI steps:** Steps are detected as GUI if they have `_GUI_` in the filename (compound) OR reference presentation/widget paths in their content (simple). Model selection priority: `--GUI_model` (if specified) → `--model` (if not `auto`) → recommended model (`claude-sonnet-4.5`). Compound steps expect 2-3 hours; simple GUI steps run normally but with better visual reasoning.
+- **GUI steps:** Steps are detected as GUI if they have `_GUI_` in the filename (compound) OR reference presentation/widget paths in their content (simple). Model selection priority: `--GUI_model` (if specified) → `--model` (if not `auto`) → recommended model (`claude-4.5-sonnet`). Compound steps expect 2-3 hours; simple GUI steps run normally but with better visual reasoning.
 
 ---
 

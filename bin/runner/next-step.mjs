@@ -190,10 +190,10 @@ function getGuiStepType(filename, content) {
 function getRecommendedModel(filename, content) {
   const guiType = getGuiStepType(filename, content);
   if (guiType === "compound") {
-    return "claude-sonnet-4-5-20250514";
+    return "claude-4.5-sonnet";
   }
   if (guiType === "simple") {
-    return "claude-sonnet-4-5-20250514";
+    return "claude-4.5-sonnet";
   }
   return null;
 }
