@@ -18,7 +18,13 @@ Output:
 
 Rules:
 - Each step must be independently testable.
-- Tests must mock or explicitly close any I/O used by the code under test (Redis, DB, BullMQ, HTTP servers, timers) so Jest exits with no open handles.
+- Every step MUST include automated test verification in "How to verify":
+  - Logic changes: unit or integration tests.
+  - UI changes: component/widget tests (e.g., Testing Library, Flutter widget tests, or equivalent for the stack).
+  - API or endpoint changes: integration or e2e tests.
+- "How to verify" must specify the exact test command to run.
+- Manual or visual-only verification is NOT acceptable when automated testing is possible for the stack.
+- Tests must mock or explicitly close any I/O used by the code under test (DB, queues, HTTP servers, timers) so the test runner exits cleanly.
 - If the TODO involves database changes, never include a step that requests a full DB reset; use additive migrations only.
 - Do NOT write any code yet.
 - Do NOT repeat the full design from the TODO; reference it by section (e.g. "per §5 Architectural Approach").

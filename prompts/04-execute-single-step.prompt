@@ -8,7 +8,9 @@ Implement only what this step describes. Do not anticipate or implement future s
 
 Rules:
 - Do not refactor or change code outside the scope of this step.
-- After implementing, run the "How to verify" section for this step (commands, tests, or checks). If the step defines tests or a verification command, run it and report pass/fail.
+- After implementing, run the "How to verify" section for this step (commands, tests, or checks). Run the specified tests and report pass/fail.
+- If the step modifies code that has existing tests, run those tests even if not explicitly listed in "How to verify".
+- If the step modifies UI code and no tests exist for it, add component/widget tests as part of this step and run them.
 - Stop when this step is complete and verified.
 - End with a minimal summary: (1) what changed, (2) verification result, (3) manual tests if applicable. Do not create or edit files in docs/TODO/summaries/ — the runner generates one summary per phase at the end of the run.
 - Do not move or rename the step file or any file in docs/TODO/active/steps/ or docs/TODO/completed/steps/ — the runner marks the step complete after you finish.
