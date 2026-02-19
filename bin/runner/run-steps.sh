@@ -523,11 +523,12 @@ while true; do
     echo "No pending steps; phase finished."
     run_phase_done_and_exit
   fi
-  # Resolve step file path from NEXT.md (single source of truth written by next-step).
+  # Resolve step file path and recommended model from NEXT.md (single source of truth written by next-step).
   # Using NEXT.md avoids depending on RUNNER_PROMPT format. Parsing is done with set +e so
   # sed/head never trigger set -e and cause a spurious exit 1 (e.g. from pipeline or missing file).
   set +e
   STEP_RAW=$(sed -n 's/.*\*\*Step file:\*\* `\([^`]*\)`.*/\1/p' "$NEXT_FILE" 2>/dev/null | head -1 | tr -d '\r')
+  STEP_RECOMMENDED_MODEL=$(sed -n 's/.*\*\*Recommended model:\*\* `\([^`]*\)`.*/\1/p' "$NEXT_FILE" 2>/dev/null | head -1 | tr -d '\r')
   set -e
   STEP_FILE="$ROOT/${STEP_RAW:-}"
   if [[ -z "$STEP_RAW" || -z "$STEP_FILE" || "$STEP_FILE" == "$ROOT/" || "$STEP_FILE" == "${ROOT}/" ]]; then
@@ -554,6 +555,13 @@ while true; do
   echo "---"
   echo ""
 
+  # Use recommended model for GUI steps if user didn't explicitly specify --model
+  EFFECTIVE_MODEL="$MODEL"
+  if [[ -n "$STEP_RECOMMENDED_MODEL" && "$MODEL" == "auto" ]]; then
+    EFFECTIVE_MODEL="$STEP_RECOMMENDED_MODEL"
+    echo "Using recommended model for GUI step: $EFFECTIVE_MODEL"
+  fi
+
   if [[ -n "$DEBUG" && -n "$QUIET" ]]; then
     echo "Running Cursor agent for step (log only: $AGENT_LOG) ..."
   elif [[ -n "$DEBUG" ]]; then
@@ -561,7 +569,12 @@ while true; do
   else
     echo "Running Cursor agent for step ..."
   fi
+  
+  # Temporarily override MODEL for this step
+  OLD_MODEL="$MODEL"
+  MODEL="$EFFECTIVE_MODEL"
   run_agent "$(cat "$RUNNER_PROMPT")" "step $(basename "$STEP_FILE")"
+  MODEL="$OLD_MODEL"
   STEP_AGENT_EXIT=$AGENT_EXIT
   echo "Step agent finished (exit code $STEP_AGENT_EXIT)."
   RUNS=$((RUNS + 1))

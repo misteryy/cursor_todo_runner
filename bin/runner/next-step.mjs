@@ -138,6 +138,28 @@ function stepIdFromFilename(name) {
   return match ? match[1] : null;
 }
 
+/**
+ * Detect if a step filename indicates a GUI compound step.
+ * GUI steps use filename pattern: P{phase}_{todo}.{step}_GUI_{description}.md
+ * @param {string} filename - Step filename
+ * @returns {boolean}
+ */
+function isGuiCompoundStep(filename) {
+  return /^P\d+(?:\.\d+)*_\d+(?:\.\d+)*\.\d+(?:\.\d+)*_GUI_/i.test(filename);
+}
+
+/**
+ * Get recommended model for a step based on its type.
+ * @param {string} filename - Step filename
+ * @returns {string|null} - Recommended model or null for default
+ */
+function getRecommendedModel(filename) {
+  if (isGuiCompoundStep(filename)) {
+    return "claude-sonnet-4-20250514";
+  }
+  return null;
+}
+
 function parseDependsOn(content) {
   const section = content.match(/## Depends on\s*\n([\s\S]*?)(?=\n## |$)/i);
   if (!section) return [];
@@ -246,19 +268,28 @@ function main() {
   const promptText = loadExecuteStepPrompt(stepPathForPrompt);
   fs.writeFileSync(PROMPT_FILE, promptText, "utf8");
 
+  const isGui = isGuiCompoundStep(next.filename);
+  const recommendedModel = getRecommendedModel(next.filename);
+  const modelHint = recommendedModel ? `\n**Recommended model:** \`${recommendedModel}\`` : "";
+  const guiNote = isGui ? "\n\n> **GUI Compound Step:** This step groups multiple widgets. Use a capable model and expect 2-3 hours." : "";
+
   const nextMd = `# Next step
 
-**Step file:** \`${stepPathRootRelative}\`
+**Step file:** \`${stepPathRootRelative}\`${modelHint}
 
 The exact prompt (with this step file @-mentioned) is in \`docs/TODO/runner/RUNNER_PROMPT.txt\`.
 
-For manual run: paste the contents of RUNNER_PROMPT.txt into the chat (the @path will attach the step file).
+For manual run: paste the contents of RUNNER_PROMPT.txt into the chat (the @path will attach the step file).${guiNote}
 `;
 
   fs.writeFileSync(NEXT_FILE, nextMd, "utf8");
   const promptFileAbs = path.resolve(PROMPT_FILE);
-  console.log(`Next step: ${next.id} (${next.filename})`);
+  const guiLabel = isGui ? " [GUI]" : "";
+  console.log(`Next step: ${next.id} (${next.filename})${guiLabel}`);
   console.log(`Written: ${path.resolve(NEXT_FILE)}, ${promptFileAbs}`);
+  if (recommendedModel) {
+    console.log(`Recommended model: ${recommendedModel}`);
+  }
 }
 
 main();

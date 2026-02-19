@@ -16,7 +16,35 @@ Output:
   5. "How to verify" (commands or checks to run; must be runnable; run linter checks only for affected files)
   6. Estimated duration (target ~1 hour or less per step)
 
-Rules:
+---
+
+## GUI vs Backend Step Decomposition
+
+GUI code (widgets, layouts, animations) causes compound bugs when decomposed atomically. Group related GUI into compound steps; keep backend atomic.
+
+**Backend (atomic):** Data models, providers, utilities, pure logic — decompose normally, ~1 hour each.
+
+**GUI (compound):** Multiple widgets that compose visually — group into single step, ~2-3 hours.
+
+### Naming Convention
+- Backend: `P{phase}_{todo}.{step}_{description}.md`
+- GUI compound: `P{phase}_{todo}.{step}_GUI_{description}.md`
+
+The `_GUI_` prefix signals the runner to use a more capable model.
+
+### When to Create GUI Compound Steps
+- 3+ widgets that must work together visually
+- Widgets share animation state or layout constraints
+- TODO's §5 (Architecture) shows a widget hierarchy
+- Integration requires visual verification
+
+### GUI Compound Step Structure
+Include all related widgets as sections (A, B, C...) within one file, with a final Integration section. Add "## Execution Note" stating this is a compound step to be implemented in a single session. Estimated duration: 2-3 hours.
+
+---
+
+## General Rules
+
 - Each step must be independently testable.
 - Every step MUST include automated test verification in "How to verify":
   - Logic changes: unit or integration tests.

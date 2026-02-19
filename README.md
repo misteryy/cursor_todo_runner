@@ -91,6 +91,8 @@ docs/
 
 Naming: Phase docs `P<number:2d>_<type>_<Short_Name>.md` (type: feature | bugfix | chore | spike | refactor). TODOs `P<phase>_<seq>_<Name>.md`; steps `P<phase>_<seq>.<step>_<slug>.md`.
 
+**GUI compound steps:** Use `P<phase>_<seq>.<step>_GUI_<slug>.md` for steps that group multiple related widgets. The runner automatically uses a more capable model for these steps.
+
 ---
 
 ## Usage
@@ -176,6 +178,7 @@ See **Parameters** for all options.
 - **Blockers:** Failed verification → file in `action_required/`; runner pauses until resolved.
 - **Manual testing:** Manual steps write instructions to `action_required/`; use `--skip_manual` for unattended runs.
 - **Execute prompt:** `prompts/04-execute-single-step.prompt`; output level via `prompts/fragments/output-step-only.txt` or `output-zero.txt` (`--quiet`).
+- **GUI compound steps:** Steps with `_GUI_` in the filename automatically use `claude-sonnet-4` (unless `--model` is explicitly passed). These steps group related widgets and expect 2-3 hour execution.
 
 ---
 
