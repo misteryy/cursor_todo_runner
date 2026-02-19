@@ -119,8 +119,14 @@ run-steps.sh --phase P1_02 --quiet
 # Run unattended (skip manual test pauses)
 run-steps.sh --phase P2_01 --skip_manual
 
-# Use a specific model
+# Use a specific model for all steps
 run-steps.sh --model claude-opus-4-5-20250514-thinking --phase P1_01
+
+# Use a specific model for GUI steps only
+run-steps.sh --GUI_model claude-opus-4-5-20250514 --phase P2_04
+
+# Use different models for GUI and non-GUI steps
+run-steps.sh --model claude-sonnet-4-20250514 --GUI_model claude-opus-4-5-20250514
 
 # Combine options
 run-steps.sh --phase P2_04 --steps 2 --quiet --skip_manual
@@ -143,7 +149,8 @@ See **Parameters** for all options.
 | `--skip_manual` | Don't pause for manual testing; report in summary only |
 | `--quiet` | Suppress agent stdout (runner prompts still shown) |
 | `--debug` | Show agent stdout, log to `docs/TODO/runner/agent_output_*.log` |
-| `--model MODEL` | Specify model (default: `auto`) |
+| `--model MODEL` | Specify model for non-GUI steps (default: `auto`) |
+| `--GUI_model MODEL` | Specify model for GUI steps (default: use `--model` value or auto-detected recommendation) |
 | `[ROOT]` | Project root (default: current directory) |
 
 **Env:** `CURSOR_TODO_QUIET=1` = `--quiet`
@@ -178,7 +185,7 @@ See **Parameters** for all options.
 - **Blockers:** Failed verification → file in `action_required/`; runner pauses until resolved.
 - **Manual testing:** Manual steps write instructions to `action_required/`; use `--skip_manual` for unattended runs.
 - **Execute prompt:** `prompts/04-execute-single-step.prompt`; output level via `prompts/fragments/output-step-only.txt` or `output-zero.txt` (`--quiet`).
-- **GUI compound steps:** Steps with `_GUI_` in the filename automatically use `claude-sonnet-4` (unless `--model` is explicitly passed). These steps group related widgets and expect 2-3 hour execution.
+- **GUI steps:** Steps are detected as GUI if they have `_GUI_` in the filename (compound) OR reference presentation/widget paths in their content (simple). Model selection priority: `--GUI_model` (if specified) → `--model` (if not `auto`) → recommended model (`claude-sonnet-4.5`). Compound steps expect 2-3 hours; simple GUI steps run normally but with better visual reasoning.
 
 ---
 

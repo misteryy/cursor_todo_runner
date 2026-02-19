@@ -139,8 +139,8 @@ function stepIdFromFilename(name) {
 }
 
 /**
- * Detect if a step filename indicates a GUI compound step.
- * GUI steps use filename pattern: P{phase}_{todo}.{step}_GUI_{description}.md
+ * Detect if a step filename indicates a GUI compound step (explicit).
+ * GUI compound steps use filename pattern: P{phase}_{todo}.{step}_GUI_{description}.md
  * @param {string} filename - Step filename
  * @returns {boolean}
  */
@@ -149,13 +149,51 @@ function isGuiCompoundStep(filename) {
 }
 
 /**
+ * Detect if step content references GUI/presentation code paths.
+ * Matches paths like: lib/.../presentation/, lib/.../widgets/, lib/shared/widgets/
+ * @param {string} content - Step file content
+ * @returns {boolean}
+ */
+function hasGuiPaths(content) {
+  const guiPathPatterns = [
+    /lib\/[^\s]*\/presentation\//i,
+    /lib\/[^\s]*\/widgets\//i,
+    /lib\/shared\/widgets\//i,
+    /lib\/[^\s]*\/screens\//i,
+    /lib\/[^\s]*\/pages\//i,
+  ];
+  return guiPathPatterns.some((pattern) => pattern.test(content));
+}
+
+/**
+ * Determine GUI step type based on filename and content.
+ * @param {string} filename - Step filename
+ * @param {string|null} content - Step file content
+ * @returns {'compound'|'simple'|null} - GUI type or null if not GUI
+ */
+function getGuiStepType(filename, content) {
+  if (isGuiCompoundStep(filename)) {
+    return "compound";
+  }
+  if (content && hasGuiPaths(content)) {
+    return "simple";
+  }
+  return null;
+}
+
+/**
  * Get recommended model for a step based on its type.
  * @param {string} filename - Step filename
+ * @param {string|null} content - Step file content
  * @returns {string|null} - Recommended model or null for default
  */
-function getRecommendedModel(filename) {
-  if (isGuiCompoundStep(filename)) {
-    return "claude-sonnet-4-20250514";
+function getRecommendedModel(filename, content) {
+  const guiType = getGuiStepType(filename, content);
+  if (guiType === "compound") {
+    return "claude-sonnet-4-5-20250514";
+  }
+  if (guiType === "simple") {
+    return "claude-sonnet-4-5-20250514";
   }
   return null;
 }
@@ -268,10 +306,17 @@ function main() {
   const promptText = loadExecuteStepPrompt(stepPathForPrompt);
   fs.writeFileSync(PROMPT_FILE, promptText, "utf8");
 
-  const isGui = isGuiCompoundStep(next.filename);
-  const recommendedModel = getRecommendedModel(next.filename);
+  const stepContent = readStepFile(ACTIVE_STEPS_DIR, next.filename);
+  const guiType = getGuiStepType(next.filename, stepContent);
+  const recommendedModel = getRecommendedModel(next.filename, stepContent);
   const modelHint = recommendedModel ? `\n**Recommended model:** \`${recommendedModel}\`` : "";
-  const guiNote = isGui ? "\n\n> **GUI Compound Step:** This step groups multiple widgets. Use a capable model and expect 2-3 hours." : "";
+  
+  let guiNote = "";
+  if (guiType === "compound") {
+    guiNote = "\n\n> **GUI Compound Step:** This step groups multiple widgets. Use a capable model and expect 2-3 hours.";
+  } else if (guiType === "simple") {
+    guiNote = "\n\n> **GUI Step:** This step modifies presentation/widget code. Using a capable model for better visual reasoning.";
+  }
 
   const nextMd = `# Next step
 
@@ -284,7 +329,7 @@ For manual run: paste the contents of RUNNER_PROMPT.txt into the chat (the @path
 
   fs.writeFileSync(NEXT_FILE, nextMd, "utf8");
   const promptFileAbs = path.resolve(PROMPT_FILE);
-  const guiLabel = isGui ? " [GUI]" : "";
+  const guiLabel = guiType === "compound" ? " [GUI-compound]" : guiType === "simple" ? " [GUI]" : "";
   console.log(`Next step: ${next.id} (${next.filename})${guiLabel}`);
   console.log(`Written: ${path.resolve(NEXT_FILE)}, ${promptFileAbs}`);
   if (recommendedModel) {

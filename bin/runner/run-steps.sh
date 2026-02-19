@@ -8,6 +8,7 @@
 #   --steps N        Run at most N steps, then exit.
 #   --phase ID       Only run steps whose id starts with ID (e.g. P1_03).
 #   --model MODEL    Agent model to use (default: auto).
+#   --GUI_model MODEL Agent model to use for GUI steps (default: use --model value).
 #   --no_summary     When phase finishes, do not generate execution summary (still move TODO to completed).
 #   --skip_manual    Do not create action_required files for manual testing; only report in summary.
 #   --quiet          Send agent stdout to /dev/null (runner prompts and alerts always on stdout).
@@ -51,6 +52,7 @@ ONCE=""
 STEPS=""
 PHASE=""
 MODEL="auto"
+GUI_MODEL=""
 ROOT=""
 NO_SUMMARY=""
 SKIP_MANUAL=""
@@ -62,6 +64,7 @@ while [[ $# -gt 0 ]]; do
     --steps)        STEPS="$2"; shift 2 ;;
     --phase)        PHASE="$2"; shift 2 ;;
     --model)        MODEL="$2"; shift 2 ;;
+    --GUI_model)    GUI_MODEL="$2"; shift 2 ;;
     --no_summary)   NO_SUMMARY=1; shift ;;
     --skip_manual)  SKIP_MANUAL=1; shift ;;
     --quiet)        QUIET=1; shift ;;
@@ -110,6 +113,7 @@ if [[ -n "$DEBUG" ]]; then
     echo "root=$ROOT"
     echo "phase=${PHASE:-}"
     echo "model=$MODEL"
+    echo "GUI_model=${GUI_MODEL:-}"
     echo "once=${ONCE:-}"
     echo "steps=${STEPS:-}"
     echo "no_summary=${NO_SUMMARY:-}"
@@ -555,11 +559,23 @@ while true; do
   echo "---"
   echo ""
 
-  # Use recommended model for GUI steps if user didn't explicitly specify --model
+  # Use GUI_model for GUI steps if specified, otherwise use recommended model or fall back to MODEL
   EFFECTIVE_MODEL="$MODEL"
-  if [[ -n "$STEP_RECOMMENDED_MODEL" && "$MODEL" == "auto" ]]; then
-    EFFECTIVE_MODEL="$STEP_RECOMMENDED_MODEL"
-    echo "Using recommended model for GUI step: $EFFECTIVE_MODEL"
+  if [[ -n "$STEP_RECOMMENDED_MODEL" ]]; then
+    # This is a GUI step
+    if [[ -n "$GUI_MODEL" ]]; then
+      # User specified --GUI_model, use it
+      EFFECTIVE_MODEL="$GUI_MODEL"
+      echo "Using GUI model for GUI step: $EFFECTIVE_MODEL"
+    elif [[ "$MODEL" == "auto" ]]; then
+      # User didn't specify --model or --GUI_model, use recommended model
+      EFFECTIVE_MODEL="$STEP_RECOMMENDED_MODEL"
+      echo "Using recommended model for GUI step: $EFFECTIVE_MODEL"
+    else
+      # User specified --model explicitly, respect it for GUI too
+      EFFECTIVE_MODEL="$MODEL"
+      echo "Using explicitly specified model for GUI step: $EFFECTIVE_MODEL"
+    fi
   fi
 
   if [[ -n "$DEBUG" && -n "$QUIET" ]]; then
