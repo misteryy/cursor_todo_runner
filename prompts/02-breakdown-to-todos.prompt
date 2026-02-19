@@ -15,6 +15,16 @@ Starting Point:
 - Refine, split, merge, or reorder as needed—do not blindly copy.
 - Add missing TODOs if the suggestions are incomplete.
 
+GUI vs Backend Classification:
+- Mark each TODO as primarily GUI, Backend, or Mixed in the Status & Scope section.
+- GUI TODOs (widgets, layouts, screens, animations) will generate steps that benefit from capable visual-reasoning models.
+- Backend TODOs (services, data, logic) decompose atomically into smaller steps.
+- Mixed TODOs should be split if possible—GUI and backend logic are easier to verify separately.
+- This classification flows into step generation, where:
+  - Simple GUI steps are auto-detected from paths (`lib/**/presentation/**`, `lib/**/widgets/**`)
+  - Compound GUI steps (3+ widgets working together) use `_GUI_` filename prefix
+  - Backend steps decompose normally
+
 Output:
 - Number of TODOs depends on phase complexity:
   - Simple phases: 3–5 TODOs

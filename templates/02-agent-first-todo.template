@@ -14,6 +14,10 @@ PLANNING | IN PROGRESS | BLOCKED
 Priority:
 LOW | MEDIUM | HIGH | CRITICAL
 
+Type:
+GUI | BACKEND | MIXED
+(GUI = widgets/layouts/screens/animations; BACKEND = services/data/logic; MIXED = both, consider splitting)
+
 Target Phase / Release:
 <if applicable>
 
