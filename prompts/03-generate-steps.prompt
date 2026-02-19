@@ -60,9 +60,14 @@ Include all related widgets as sections (A, B, C...) within one file, with a fin
 - Do NOT write any code yet.
 - Do NOT repeat the full design from the TODO; reference it by section (e.g. "per §5 Architectural Approach").
 - Do NOT include instructions to move files in any step — the runner handles moving step files and TODOs to completed automatically.
-- If there are open questions that block decomposition, list them and stop; do not create step files until resolved.
 - Do not commit to git.
 - Step numbers must reflect intended implementation order (01 before 02, etc.).
 - GUI triggers before functionality: when implementing UI features (modals, screens, panels), always implement the button/trigger that opens the feature BEFORE implementing the feature itself. This enables manual testing of the UI flow at each step. Example: a "Select Course" button step should precede the course selector modal step.
+
+Before Creating Step Files:
+- Confirm you have no unresolved questions that would affect step scope, order, or verification.
+- If the TODO has open questions in §11, resolve them first or surface them now.
+- If uncertain about any aspect, surface it now rather than making assumptions.
+- Only proceed to create step files when all blocking questions are resolved.
 
 Create only the step files. No summary document unless the TODO explicitly asks for one.

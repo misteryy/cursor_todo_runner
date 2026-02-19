@@ -10,6 +10,11 @@ Your task:
 - If any open questions block the breakdown, list them and stop — let's resolve together.
   Give at least 3 suggestions with short explanations for each question.
 
+Before Creating Output:
+- Confirm you have no unresolved questions that would affect phase boundaries or scope.
+- If uncertain about any aspect, surface it now rather than making assumptions.
+- Only proceed to create phase files when all blocking questions are resolved.
+
 Output:
 - One Feature Overview per phase (typically 3–8 phases for a full project)
 - Each overview standalone and usable for TODO generation

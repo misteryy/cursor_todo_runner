@@ -25,6 +25,11 @@ GUI vs Backend Classification:
   - Compound GUI steps (3+ widgets working together) use `_GUI_` filename prefix
   - Backend steps decompose normally
 
+Before Creating Output:
+- Confirm you have no unresolved questions that would affect TODO scope or boundaries.
+- If uncertain about any aspect, surface it now rather than making assumptions.
+- Only proceed to create TODO files when all blocking questions are resolved.
+
 Output:
 - Number of TODOs depends on phase complexity:
   - Simple phases: 3–5 TODOs
