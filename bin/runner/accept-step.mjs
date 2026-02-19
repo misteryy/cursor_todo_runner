@@ -33,7 +33,8 @@ function findStepPath() {
   for (const file of [NEXT_FILE, PROMPT_FILE]) {
     if (!fs.existsSync(file)) continue;
     const content = fs.readFileSync(file, "utf8");
-    const match = content.match(/docs[/\\]TODO[/\\]active[/\\]steps[/\\](P\d+_\d+\.\d+_[^\s`]+\.md)/);
+    // Match versioned step filename: P{phase}_{todo}.{step}_slug.md (e.g., P2.5_01.5.01_foo.md)
+    const match = content.match(/docs[/\\]TODO[/\\]active[/\\]steps[/\\](P\d+(?:\.\d+)*_\d+(?:\.\d+)*\.\d+(?:\.\d+)*_[^\s`]+\.md)/);
     if (match) return path.join(ROOT, "docs", "TODO", "active", "steps", match[1]);
   }
   return null;

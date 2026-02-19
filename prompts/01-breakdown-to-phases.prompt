@@ -14,8 +14,9 @@ Output:
 - One Feature Overview per phase (typically 3–8 phases for a full project)
 - Each overview standalone and usable for TODO generation
 - Store each overview in docs/phase/active/
-- Filename pattern: P{number:2d}_{Type}_{Short_Name}.md
-- File numbers must reflect intended implementation order (P01 before P02, etc.)
-  - Type is a category for the phase: phase | feature | bugfix | chore | spike | refactor (use lowercase).
-  - Short_Name is a concise slug (e.g. Foundation_And_Design_System).
-  Examples: P01_feature_Foundation_And_Design_System.md, P02_feature_Map_Integration.md, P03_bugfix_Login_Timeout.md
+- Filename pattern: P{version}_{Type}_{Short_Name}.md
+  - version: integer or dotted version (e.g. 01, 02.5, 03.1.2) for sub-phases or insertions
+  - Type: phase | feature | bugfix | chore | spike | refactor (lowercase)
+  - Short_Name: concise slug (e.g. Foundation_And_Design_System)
+- File numbers must reflect intended implementation order (P01 before P02, P02.5 between P02 and P03, etc.)
+  Examples: P01_feature_Foundation.md, P02_feature_Map.md, P02.5_feature_Map_Overlay.md, P03_bugfix_Login.md

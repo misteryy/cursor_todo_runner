@@ -15,7 +15,8 @@ Output:
 - Each TODO standalone and executable by an agent
 - Keep each TODO concise (2–4 pages max)
 - Store each TODO file in docs/TODO/active/
-- Filename pattern: P{phase}_{number:2d}_{short_slug}.md — do NOT include the word "TODO" in the filename.
-  Examples: P1_01_Flutter_Project_Init.md, P1_02_Dependencies_And_Analysis.md (not P1_TODO_01_...).
-  Use phase from the overview (e.g. Phase 1 → P1); number each TODO 01, 02, … within that phase.
-- TODO numbers must reflect intended implementation order (01 before 02, etc.)
+- Filename pattern: P{phase}_{version}_{short_slug}.md — do NOT include the word "TODO" in the filename.
+  - phase: from the overview filename (e.g. P01 → 1, P02.5 → 2.5)
+  - version: integer or dotted version (e.g. 01, 02.5, 03.1.2) for sub-TODOs or insertions
+  Examples: P1_01_Flutter_Project_Init.md, P1_02_Dependencies.md, P2.5_01_Overlay_Setup.md, P2.5_01.5_Overlay_Styles.md
+- TODO numbers must reflect intended implementation order (01 before 02, 01.5 between 01 and 02, etc.)

@@ -19,11 +19,12 @@ const ACTIVE_STEPS_DIR = path.join(ACTIVE_DIR, "steps");
 const COMPLETED_DIR = path.join(ROOT, "docs", "TODO", "completed");
 
 function stepIdFromFilename(name) {
-  const match = name.match(/^(P\d+_\d+\.\d+)_/);
+  // Match versioned step ID: P{phase}_{todo}.{step} where each can be dotted (e.g., P2.5_01.5.01)
+  const match = name.match(/^(P\d+(?:\.\d+)*_\d+(?:\.\d+)*\.\d+(?:\.\d+)*)_/);
   return match ? match[1] : null;
 }
 
-/** TODO id from step filename (e.g. P1_01.05_foo.md -> P1_01) */
+/** TODO id from step filename (e.g. P1_01.05_foo.md -> P1_01, P2.5_01.5.01_foo.md -> P2.5_01.5) */
 function todoIdFromStepFilename(basename) {
   const stepId = stepIdFromFilename(basename);
   if (!stepId) return null;

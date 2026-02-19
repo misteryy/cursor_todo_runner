@@ -12,7 +12,7 @@
  * Options:
  *   --phase ID      Only consider steps whose id starts with ID (e.g. P1_03 for P1_03.1, P1_03.2).
  *   --quiet         Use no-output fragment for the execute prompt (prompts/fragments/output-zero.txt). Default: output-step-only.txt.
- *   --skip-manual   Do not create action_required files for manual testing; only report in summary.
+ *   --skip_manual   Do not create action_required files for manual testing; only report in summary.
  *   --dry-run       Only check status and exit with appropriate code; do not write files.
  */
 
@@ -38,7 +38,7 @@ function parseArgs() {
       i++;
     } else if (args[i] === "--quiet") {
       quiet = true;
-    } else if (args[i] === "--skip-manual") {
+    } else if (args[i] === "--skip_manual") {
       skipManual = true;
     } else if (args[i] === "--dry-run") {
       dryRun = true;
@@ -129,10 +129,12 @@ function loadUserFragments(promptNumber) {
   return contents.join("\n\n");
 }
 
-const STEP_ID_REGEX = /P\d+_\d+\.\d+/g;
+// Versioned step ID: P{phase}_{todo}.{step} where each component can be dotted (e.g., P2.5_01.5.01)
+const STEP_ID_REGEX = /P\d+(?:\.\d+)*_\d+(?:\.\d+)*\.\d+(?:\.\d+)*/g;
 
 function stepIdFromFilename(name) {
-  const match = name.match(/^(P\d+_\d+\.\d+)_/);
+  // Match versioned step ID at start of filename: P{phase}_{todo}.{step}_
+  const match = name.match(/^(P\d+(?:\.\d+)*_\d+(?:\.\d+)*\.\d+(?:\.\d+)*)_/);
   return match ? match[1] : null;
 }
 

@@ -115,13 +115,13 @@ run-steps.sh --phase P2_04 --steps 3 --debug
 run-steps.sh --phase P1_02 --quiet
 
 # Run unattended (skip manual test pauses)
-run-steps.sh --phase P2_01 --skip-manual
+run-steps.sh --phase P2_01 --skip_manual
 
 # Use a specific model
 run-steps.sh --model claude-opus-4-5-20250514-thinking --phase P1_01
 
 # Combine options
-run-steps.sh --phase P2_04 --steps 2 --quiet --skip-manual
+run-steps.sh --phase P2_04 --steps 2 --quiet --skip_manual
 ```
 
 See **Parameters** for all options.
@@ -137,8 +137,8 @@ See **Parameters** for all options.
 | `--once` | Run one step, then exit |
 | `--steps N` | Run N steps, then exit |
 | `--phase ID` | Only run steps matching `ID` (e.g. `P1_03`) |
-| `--no-summary` | Skip execution summary when phase finishes |
-| `--skip-manual` | Don't pause for manual testing; report in summary only |
+| `--no_summary` | Skip execution summary when phase finishes |
+| `--skip_manual` | Don't pause for manual testing; report in summary only |
 | `--quiet` | Suppress agent stdout (runner prompts still shown) |
 | `--debug` | Show agent stdout, log to `docs/TODO/runner/agent_output_*.log` |
 | `--model MODEL` | Specify model (default: `auto`) |
@@ -174,7 +174,7 @@ See **Parameters** for all options.
 - **Layout:** Runner creates `docs/TODO/active/steps/`, `completed/steps/`, `completed/summaries/`, `runner/`, and `action_required/` if missing.
 - **Ordering:** By "Depends on" and step id prefix.
 - **Blockers:** Failed verification → file in `action_required/`; runner pauses until resolved.
-- **Manual testing:** Manual steps write instructions to `action_required/`; use `--skip-manual` for unattended runs.
+- **Manual testing:** Manual steps write instructions to `action_required/`; use `--skip_manual` for unattended runs.
 - **Execute prompt:** `prompts/04-execute-single-step.prompt`; output level via `prompts/fragments/output-step-only.txt` or `output-zero.txt` (`--quiet`).
 
 ---

@@ -10,7 +10,7 @@
  *
  * Options:
  *   --phase ID      Only consider TODO and steps for this phase (e.g. P1_03).
- *   --no-summary    Only move TODO to completed; do not write RUNNER_SUMMARY_PROMPT.txt.
+ *   --no_summary    Only move TODO to completed; do not write RUNNER_SUMMARY_PROMPT.txt.
  */
 
 import fs from "fs";
@@ -29,7 +29,7 @@ function parseArgs() {
     if (args[i] === "--phase" && args[i + 1]) {
       phase = args[i + 1];
       i++;
-    } else if (args[i] === "--no-summary") {
+    } else if (args[i] === "--no_summary") {
       noSummary = true;
     }
   }
@@ -49,7 +49,8 @@ const PHASE_ACTIVE_DIR = path.join(ROOT, "docs", "phase", "active");
 const PHASE_COMPLETED_DIR = path.join(ROOT, "docs", "phase", "completed");
 
 function stepIdFromFilename(name) {
-  const match = name.match(/^(P\d+_\d+\.\d+)_/);
+  // Match versioned step ID: P{phase}_{todo}.{step} where each can be dotted (e.g., P2.5_01.5.01)
+  const match = name.match(/^(P\d+(?:\.\d+)*_\d+(?:\.\d+)*\.\d+(?:\.\d+)*)_/);
   return match ? match[1] : null;
 }
 
@@ -59,9 +60,10 @@ function phaseFromStepId(stepId) {
   return idx > 0 ? stepId.slice(0, idx) : stepId;
 }
 
-/** Extract phase prefix from TODO filename (e.g. P1_01_foo.md -> P1) */
+/** Extract phase prefix from TODO filename (e.g. P1_01_foo.md -> P1, P2.5_01_foo.md -> P2.5) */
 function phaseFromTodoFilename(name) {
-  const match = name.match(/^(P\d+)_/);
+  // Match versioned phase: P{version} where version can be dotted (e.g., P2.5)
+  const match = name.match(/^(P\d+(?:\.\d+)*)_/);
   return match ? match[1] : null;
 }
 

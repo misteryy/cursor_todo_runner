@@ -8,8 +8,8 @@
 #   --steps N        Run at most N steps, then exit.
 #   --phase ID       Only run steps whose id starts with ID (e.g. P1_03).
 #   --model MODEL    Agent model to use (default: auto).
-#   --no-summary     When phase finishes, do not generate execution summary (still move TODO to completed).
-#   --skip-manual    Do not create action_required files for manual testing; only report in summary.
+#   --no_summary     When phase finishes, do not generate execution summary (still move TODO to completed).
+#   --skip_manual    Do not create action_required files for manual testing; only report in summary.
 #   --quiet          Send agent stdout to /dev/null (runner prompts and alerts always on stdout).
 #   --debug          Show agent stdout, log to timestamped file with run parameters.
 #   [ROOT]           Project root (default: current directory).
@@ -62,8 +62,8 @@ while [[ $# -gt 0 ]]; do
     --steps)        STEPS="$2"; shift 2 ;;
     --phase)        PHASE="$2"; shift 2 ;;
     --model)        MODEL="$2"; shift 2 ;;
-    --no-summary)   NO_SUMMARY=1; shift ;;
-    --skip-manual)  SKIP_MANUAL=1; shift ;;
+    --no_summary)   NO_SUMMARY=1; shift ;;
+    --skip_manual)  SKIP_MANUAL=1; shift ;;
     --quiet)        QUIET=1; shift ;;
     --debug)        DEBUG=1; shift ;;
     *)              ROOT="$1"; shift ;;
@@ -99,8 +99,8 @@ NEXT_ARGS=()
 [[ -n "$PHASE" ]] && NEXT_ARGS+=(--phase "$PHASE")
 # No-output fragment only when --quiet
 [[ -n "$QUIET" ]] && NEXT_ARGS+=(--quiet)
-# Skip manual test blocking when --skip-manual
-[[ -n "$SKIP_MANUAL" ]] && NEXT_ARGS+=(--skip-manual)
+# Skip manual test blocking when --skip_manual
+[[ -n "$SKIP_MANUAL" ]] && NEXT_ARGS+=(--skip_manual)
 
 RUNNER_DIR_FILES="$ROOT/docs/TODO/runner"
 if [[ -n "$DEBUG" ]]; then
@@ -464,7 +464,7 @@ run_agent() {
 run_phase_done_and_exit() {
   ON_DONE_ARGS=()
   [[ -n "$PHASE" ]] && ON_DONE_ARGS+=(--phase "$PHASE")
-  [[ -n "$NO_SUMMARY" ]] && ON_DONE_ARGS+=(--no-summary)
+  [[ -n "$NO_SUMMARY" ]] && ON_DONE_ARGS+=(--no_summary)
   node "$RUNNER_DIR/on-phase-done.mjs" "${ON_DONE_ARGS[@]}" 2>/dev/null || true
   if [[ -z "$NO_SUMMARY" && -r "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt" ]]; then
     echo "Generating execution summary (one per phase) ..."
@@ -487,7 +487,8 @@ while true; do
     for resolved_file in "$ACTION_REQUIRED_DIR"/resolved_*.md; do
       [[ -f "$resolved_file" ]] || continue
       base=$(basename "$resolved_file" .md)
-      if [[ "$base" =~ ^resolved_(P[0-9]+_[0-9]+\.[0-9]+)(_|$) ]]; then
+      # Match versioned step ID: P{phase}_{todo}.{step} where each can be dotted (e.g., P2.5_01.5.01)
+      if [[ "$base" =~ ^resolved_(P[0-9]+(\.[0-9]+)*_[0-9]+(\.[0-9]+)*\.[0-9]+(\.[0-9]+)*)(_|$) ]]; then
         step_id="${BASH_REMATCH[1]}"
         for step_candidate in "$ACTIVE_STEPS_DIR"/${step_id}_*.md; do
           if [[ -f "$step_candidate" ]]; then
@@ -604,7 +605,7 @@ while true; do
       echo "Phase finished (no pending steps)."
       ON_DONE_ARGS=()
       [[ -n "$PHASE" ]] && ON_DONE_ARGS+=(--phase "$PHASE")
-      [[ -n "$NO_SUMMARY" ]] && ON_DONE_ARGS+=(--no-summary)
+      [[ -n "$NO_SUMMARY" ]] && ON_DONE_ARGS+=(--no_summary)
       node "$RUNNER_DIR/on-phase-done.mjs" "${ON_DONE_ARGS[@]}" 2>/dev/null || true
       if [[ -z "$NO_SUMMARY" && -r "$RUNNER_DIR_FILES/RUNNER_SUMMARY_PROMPT.txt" ]]; then
         echo "Generating execution summary ..."
