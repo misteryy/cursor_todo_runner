@@ -1,0 +1,169 @@
+{
+  "_doc": "GUI path-pattern presets for common frameworks. Each preset has 'patterns' (regex strings matched against step file content) and 'notes' explaining caveats. Users select a preset (or combine multiple) in their project's gui-patterns.json.",
+
+  "flutter": {
+    "notes": "Flutter: presentation/ and widgets/ are GUI-only by convention. screens/ and pages/ are typically GUI entry points. lib/shared/widgets/ is a common shared widget directory.",
+    "patterns": [
+      "lib/[^\\s]*/presentation/",
+      "lib/[^\\s]*/widgets/",
+      "lib/shared/widgets/",
+      "lib/[^\\s]*/screens/",
+      "lib/[^\\s]*/pages/"
+    ]
+  },
+
+  "react": {
+    "notes": "React: components/ is almost always UI. pages/ and views/ are route-level UI. hooks/ is excluded (often logic-only). styles/ and css/ are pure presentation.",
+    "patterns": [
+      "src/components/",
+      "src/pages/",
+      "src/views/",
+      "src/layouts/",
+      "src/styles/",
+      "app/components/"
+    ]
+  },
+
+  "next": {
+    "notes": "Next.js: app/ route segments with page.tsx/layout.tsx are UI. components/ is UI. Note: app/ also contains route handlers (route.ts) and server actions — patterns target only known UI file conventions.",
+    "patterns": [
+      "app/[^\\s]*/page\\.(tsx|jsx)",
+      "app/[^\\s]*/layout\\.(tsx|jsx)",
+      "app/[^\\s]*/loading\\.(tsx|jsx)",
+      "app/[^\\s]*/error\\.(tsx|jsx)",
+      "src/components/",
+      "components/"
+    ]
+  },
+
+  "vue": {
+    "notes": "Vue: .vue files are single-file components (template + script + style). components/ and views/ are standard Vue CLI directories. layouts/ is used by Nuxt.",
+    "patterns": [
+      "src/components/",
+      "src/views/",
+      "src/layouts/",
+      "src/pages/"
+    ]
+  },
+
+  "nuxt": {
+    "notes": "Nuxt: pages/ auto-generates routes (UI). components/ is auto-imported UI. layouts/ wraps pages. Note: server/ and composables/ are excluded (logic-only).",
+    "patterns": [
+      "pages/",
+      "components/",
+      "layouts/"
+    ]
+  },
+
+  "angular": {
+    "notes": "Angular: components/ are UI. Pipes and directives are presentation helpers. Note: services/ is excluded (logic-only). Angular components often live alongside their services, so patterns target the component suffix convention.",
+    "patterns": [
+      "\\.component\\.(ts|html|css|scss)",
+      "\\.directive\\.ts",
+      "\\.pipe\\.ts",
+      "src/app/[^\\s]*/components/"
+    ]
+  },
+
+  "svelte": {
+    "notes": "Svelte/SvelteKit: routes/ contains +page.svelte and +layout.svelte (UI). lib/components/ is the standard component directory. Note: +server.ts files in routes/ are API-only — patterns target .svelte files.",
+    "patterns": [
+      "src/routes/[^\\s]*\\+page\\.svelte",
+      "src/routes/[^\\s]*\\+layout\\.svelte",
+      "src/lib/components/",
+      "src/components/"
+    ]
+  },
+
+  "swift-uikit": {
+    "notes": "iOS UIKit: ViewControllers, Views, Storyboards, and XIBs are GUI. Cells/ for table/collection view cells. Note: Models/ and Services/ are excluded.",
+    "patterns": [
+      "ViewControllers?/",
+      "Views?/",
+      "\\.storyboard",
+      "\\.xib",
+      "Cells/"
+    ]
+  },
+
+  "swiftui": {
+    "notes": "SwiftUI: Views/ is the standard convention. Screens/ and Components/ are common organizational patterns. Note: Models/ and ViewModels/ are excluded (logic-only despite MVVM proximity).",
+    "patterns": [
+      "Views/",
+      "Screens/",
+      "Components/",
+      "Scenes/"
+    ]
+  },
+
+  "android-xml": {
+    "notes": "Android XML layouts: res/layout/ contains XML UI definitions. res/drawable/ and res/menu/ are presentation resources. Fragments and Activities are UI controllers.",
+    "patterns": [
+      "res/layout/",
+      "res/drawable/",
+      "res/menu/",
+      "res/navigation/",
+      "[^\\s]*/fragments/",
+      "[^\\s]*/activities/"
+    ]
+  },
+
+  "jetpack-compose": {
+    "notes": "Jetpack Compose: ui/ and composables/ directories contain Compose UI code. screens/ and components/ are common organizational patterns. theme/ is presentation. Note: domain/ and data/ are excluded.",
+    "patterns": [
+      "/ui/",
+      "/composables/",
+      "/screens/",
+      "/components/",
+      "/theme/"
+    ]
+  },
+
+  "django": {
+    "notes": "Django: templates/ contains HTML templates. static/ has CSS/JS assets. templatetags/ provides template helpers. Note: views.py may contain logic — only templates/ and static/ are safe GUI indicators.",
+    "patterns": [
+      "templates/",
+      "static/",
+      "templatetags/"
+    ]
+  },
+
+  "rails": {
+    "notes": "Rails: app/views/ contains ERB/Haml templates. app/assets/ has stylesheets and JS. app/helpers/ assists views. Note: app/controllers/ is excluded (request handling logic).",
+    "patterns": [
+      "app/views/",
+      "app/assets/",
+      "app/helpers/",
+      "app/javascript/components/"
+    ]
+  },
+
+  "laravel": {
+    "notes": "Laravel: resources/views/ contains Blade templates. resources/css/ and resources/js/ are frontend assets. Note: app/Http/Controllers/ is excluded (logic).",
+    "patterns": [
+      "resources/views/",
+      "resources/css/",
+      "resources/js/components/"
+    ]
+  },
+
+  "wpf": {
+    "notes": "WPF (.NET): XAML files are UI definitions. Views/ contains windows and pages. Controls/ has custom UI controls. Note: ViewModels/ is excluded (logic-only in MVVM).",
+    "patterns": [
+      "\\.xaml",
+      "Views/",
+      "Controls/",
+      "Pages/"
+    ]
+  },
+
+  "qt": {
+    "notes": "Qt: .ui files are Qt Designer forms. .qml files are QML UI definitions. qml/ directory holds QML components. Note: .cpp models/controllers are excluded.",
+    "patterns": [
+      "\\.ui$",
+      "\\.qml",
+      "qml/",
+      "forms/"
+    ]
+  }
+}

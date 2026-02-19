@@ -1,0 +1,15 @@
+{
+  "_doc": "Copy this file to your project root as gui-patterns.json (or into your runner config dir). Select presets by name, add custom patterns, and override model recommendations.",
+
+  "presets": ["react", "next"],
+
+  "customPatterns": [
+    "src/design-system/",
+    "packages/ui/"
+  ],
+
+  "modelRecommendations": {
+    "compound": "claude-4.5-sonnet",
+    "simple": "claude-4.5-sonnet"
+  }
+}

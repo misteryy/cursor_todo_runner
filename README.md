@@ -91,7 +91,7 @@ docs/
 
 Naming: Phase docs `P<number:2d>_<type>_<Short_Name>.md` (type: feature | bugfix | chore | spike | refactor). TODOs `P<phase>_<seq>_<Name>.md`; steps `P<phase>_<seq>.<step>_<slug>.md`.
 
-**GUI compound steps:** Use `P<phase>_<seq>.<step>_GUI_<slug>.md` for steps that group multiple related widgets. The runner automatically uses a more capable model for these steps.
+**GUI compound steps:** Use `P<phase>_<seq>.<step>_GUI_<slug>.md` for steps that group multiple related UI components. The runner automatically uses a more capable model for these steps. See **GUI step detection** below for configuration.
 
 ---
 
@@ -185,7 +185,68 @@ See **Parameters** for all options.
 - **Blockers:** Failed verification → file in `action_required/`; runner pauses until resolved.
 - **Manual testing:** Manual steps write instructions to `action_required/`; use `--skip_manual` for unattended runs.
 - **Execute prompt:** `prompts/04-execute-single-step.prompt`; output level via `prompts/fragments/output-step-only.txt` or `output-zero.txt` (`--quiet`).
-- **GUI steps:** Steps are detected as GUI if they have `_GUI_` in the filename (compound) OR reference presentation/widget paths in their content (simple). Model selection priority: `--GUI_model` (if specified) → `--model` (if not `auto`) → recommended model (`claude-4.5-sonnet`). Compound steps expect 2-3 hours; simple GUI steps run normally but with better visual reasoning.
+- **GUI steps:** Steps are detected as GUI in two ways: (1) `_GUI_` in the filename (compound — always works, no config needed), or (2) step content matches path patterns from a `gui-patterns.json` config file (simple). Without a config file, only explicit `_GUI_` filenames trigger GUI detection. Model selection priority: `--GUI_model` (if specified) → `--model` (if not `auto`) → recommended model. See **GUI step detection** below.
+
+---
+
+## GUI step detection
+
+The runner can automatically detect GUI/UI steps and use a more capable model for them. This works in two ways:
+
+1. **Explicit (always active):** Name your step file with `_GUI_` in the filename (e.g., `P2_04.03_GUI_dashboard_layout.md`). This marks it as a compound GUI step.
+
+2. **Content-based (opt-in via config):** Create a `gui-patterns.json` in your project root to enable automatic detection based on file paths mentioned in step content.
+
+### Setting up `gui-patterns.json`
+
+Place this file in your project root (or `.cursor/gui-patterns.json`, or `config/gui-patterns.json`):
+
+```json
+{
+  "presets": ["react", "next"],
+  "customPatterns": [
+    "src/design-system/",
+    "packages/ui/"
+  ],
+  "modelRecommendations": {
+    "compound": "claude-4.5-sonnet",
+    "simple": "claude-4.5-sonnet"
+  }
+}
+```
+
+- **`presets`** — Select from built-in framework presets (see below). Combine multiple if your project uses several frameworks.
+- **`customPatterns`** — Add project-specific regex patterns for paths that indicate GUI code.
+- **`modelRecommendations`** — Override which model is recommended for GUI steps.
+
+### Available presets
+
+| Preset | Framework | GUI paths detected |
+|--------|-----------|-------------------|
+| `flutter` | Flutter/Dart | `lib/**/presentation/`, `lib/**/widgets/`, `lib/shared/widgets/`, `lib/**/screens/`, `lib/**/pages/` |
+| `react` | React | `src/components/`, `src/pages/`, `src/views/`, `src/layouts/`, `src/styles/`, `app/components/` |
+| `next` | Next.js | `app/**/page.tsx`, `app/**/layout.tsx`, `app/**/loading.tsx`, `app/**/error.tsx`, `src/components/`, `components/` |
+| `vue` | Vue.js | `src/components/`, `src/views/`, `src/layouts/`, `src/pages/` |
+| `nuxt` | Nuxt | `pages/`, `components/`, `layouts/` |
+| `angular` | Angular | `.component.{ts,html,css,scss}`, `.directive.ts`, `.pipe.ts`, `src/app/**/components/` |
+| `svelte` | Svelte/SvelteKit | `src/routes/**/+page.svelte`, `src/routes/**/+layout.svelte`, `src/lib/components/`, `src/components/` |
+| `swift-uikit` | iOS UIKit | `ViewControllers/`, `Views/`, `.storyboard`, `.xib`, `Cells/` |
+| `swiftui` | SwiftUI | `Views/`, `Screens/`, `Components/`, `Scenes/` |
+| `android-xml` | Android XML | `res/layout/`, `res/drawable/`, `res/menu/`, `res/navigation/`, `**/fragments/`, `**/activities/` |
+| `jetpack-compose` | Jetpack Compose | `/ui/`, `/composables/`, `/screens/`, `/components/`, `/theme/` |
+| `django` | Django | `templates/`, `static/`, `templatetags/` |
+| `rails` | Ruby on Rails | `app/views/`, `app/assets/`, `app/helpers/`, `app/javascript/components/` |
+| `laravel` | Laravel | `resources/views/`, `resources/css/`, `resources/js/components/` |
+| `wpf` | WPF (.NET) | `.xaml`, `Views/`, `Controls/`, `Pages/` |
+| `qt` | Qt/QML | `.ui`, `.qml`, `qml/`, `forms/` |
+
+Each preset has notes about caveats (e.g., which directories are intentionally excluded). See `config/gui-presets.json` for full details.
+
+An example config file is available at `config/gui-patterns.example.json`.
+
+### Without a config file
+
+If no `gui-patterns.json` exists, content-based GUI detection is disabled entirely. Only explicit `_GUI_` filenames trigger GUI model selection. This is the safe default for a general-purpose runner — no assumptions about your project structure.
 
 ---
 

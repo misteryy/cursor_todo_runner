@@ -20,29 +20,29 @@ Output:
 
 ## GUI vs Backend Step Decomposition
 
-GUI code (widgets, layouts, animations) causes compound bugs when decomposed atomically.
+GUI code (components, widgets, layouts, animations) causes compound bugs when decomposed atomically.
 
-**Backend (atomic):** Data models, providers, utilities, pure logic — decompose normally, ~1 hour each.
+**Backend (atomic):** Data models, services, utilities, pure logic — decompose normally, ~1 hour each.
 
-**Simple GUI (atomic):** Single widgets, buttons, text fields, simple screens — decompose normally. The runner auto-detects GUI from paths (`lib/**/presentation/**`, `lib/**/widgets/**`, etc.) and uses a capable model (via `--GUI_model` if specified, otherwise the `--model` value, or the auto-detected recommendation).
+**Simple GUI (atomic):** Single components, buttons, text fields, simple screens — decompose normally. If the project has a `gui-patterns.json` config, the runner auto-detects GUI steps from path patterns and uses a capable model (via `--GUI_model` if specified, otherwise the `--model` value, or the auto-detected recommendation).
 
-**Compound GUI:** Multiple widgets that compose visually — group into single step with `_GUI_` prefix, ~2-3 hours.
+**Compound GUI:** Multiple UI components that compose visually — group into single step with `_GUI_` prefix, ~2-3 hours.
 
 ### Naming Convention
 - Backend: `P{phase}_{todo}.{step}_{description}.md`
-- Simple GUI: `P{phase}_{todo}.{step}_{description}.md` (auto-detected from paths)
-- Compound GUI: `P{phase}_{todo}.{step}_GUI_{description}.md` (explicit)
+- Simple GUI: `P{phase}_{todo}.{step}_{description}.md` (auto-detected from paths when `gui-patterns.json` is configured)
+- Compound GUI: `P{phase}_{todo}.{step}_GUI_{description}.md` (explicit, always works)
 
 ### When to Use `_GUI_` Prefix (Compound Steps)
-- 3+ widgets that must work together visually
-- Widgets share animation state or layout constraints
-- TODO's §5 (Architecture) shows a widget hierarchy
+- 3+ UI components that must work together visually
+- Components share animation state or layout constraints
+- TODO's §5 (Architecture) shows a component hierarchy
 - Integration requires visual verification
 
-Simple GUI (single button, single text field, single screen) does NOT need `_GUI_` prefix — the runner detects it from paths.
+Simple GUI (single button, single text field, single screen) does NOT need `_GUI_` prefix — the runner detects it from paths when configured.
 
 ### GUI Compound Step Structure
-Include all related widgets as sections (A, B, C...) within one file, with a final Integration section. Add "## Execution Note" stating this is a compound step to be implemented in a single session. Estimated duration: 2-3 hours.
+Include all related UI components as sections (A, B, C...) within one file, with a final Integration section. Add "## Execution Note" stating this is a compound step to be implemented in a single session. Estimated duration: 2-3 hours.
 
 ---
 

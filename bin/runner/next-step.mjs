@@ -19,6 +19,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { loadGuiPatterns, loadModelRecommendations } from "./gui-config.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUNNER_ROOT = path.join(SCRIPT_DIR, "..", "..");
@@ -141,59 +142,47 @@ function stepIdFromFilename(name) {
 /**
  * Detect if a step filename indicates a GUI compound step (explicit).
  * GUI compound steps use filename pattern: P{phase}_{todo}.{step}_GUI_{description}.md
- * @param {string} filename - Step filename
- * @returns {boolean}
  */
 function isGuiCompoundStep(filename) {
   return /^P\d+(?:\.\d+)*_\d+(?:\.\d+)*\.\d+(?:\.\d+)*_GUI_/i.test(filename);
 }
 
 /**
- * Detect if step content references GUI/presentation code paths.
- * Matches paths like: lib/.../presentation/, lib/.../widgets/, lib/shared/widgets/
- * @param {string} content - Step file content
- * @returns {boolean}
+ * Detect if step content matches any configured GUI path patterns.
+ * Returns false when no gui-patterns.json config exists (no implicit detection).
  */
-function hasGuiPaths(content) {
-  const guiPathPatterns = [
-    /lib\/[^\s]*\/presentation\//i,
-    /lib\/[^\s]*\/widgets\//i,
-    /lib\/shared\/widgets\//i,
-    /lib\/[^\s]*\/screens\//i,
-    /lib\/[^\s]*\/pages\//i,
-  ];
-  return guiPathPatterns.some((pattern) => pattern.test(content));
+function hasGuiPaths(content, guiPatterns) {
+  if (!guiPatterns) return false;
+  return guiPatterns.some((pattern) => pattern.test(content));
 }
 
 /**
  * Determine GUI step type based on filename and content.
- * @param {string} filename - Step filename
- * @param {string|null} content - Step file content
- * @returns {'compound'|'simple'|null} - GUI type or null if not GUI
+ * - 'compound': explicit _GUI_ filename marker (always works, no config needed)
+ * - 'simple': content matches configured GUI path patterns (requires gui-patterns.json)
+ * - null: not a GUI step
  */
-function getGuiStepType(filename, content) {
+function getGuiStepType(filename, content, guiPatterns) {
   if (isGuiCompoundStep(filename)) {
     return "compound";
   }
-  if (content && hasGuiPaths(content)) {
+  if (content && hasGuiPaths(content, guiPatterns)) {
     return "simple";
   }
   return null;
 }
 
 /**
- * Get recommended model for a step based on its type.
- * @param {string} filename - Step filename
- * @param {string|null} content - Step file content
- * @returns {string|null} - Recommended model or null for default
+ * Get recommended model for a step based on its GUI type.
+ * Model names come from gui-patterns.json config or defaults.
  */
-function getRecommendedModel(filename, content) {
-  const guiType = getGuiStepType(filename, content);
+function getRecommendedModel(filename, content, guiPatterns, modelRecs) {
+  const guiType = getGuiStepType(filename, content, guiPatterns);
   if (guiType === "compound") {
-    return "claude-4.5-sonnet";
+    return modelRecs.compound;
   }
   if (guiType === "simple") {
-    return "claude-4.5-sonnet";
+    return modelRecs.simple;
   }
   return null;
 }
@@ -293,10 +282,8 @@ function main() {
   const next = ready[0];
   const stepPathRootRelative = path.join("docs", "TODO", "active", "steps", next.filename);
   const stepFileAbs = path.join(ROOT, stepPathRootRelative);
-  // Prompt path: relative to runner package root so agent @-mention resolves when workspace is the runner (e.g. apps/backend/cursor_todo_runner)
   const stepPathForPrompt = path.relative(RUNNER_ROOT, stepFileAbs);
 
-  // Dry-run mode: just report status and exit without writing files
   if (dryRun) {
     process.exit(0);
   }
@@ -306,16 +293,18 @@ function main() {
   const promptText = loadExecuteStepPrompt(stepPathForPrompt);
   fs.writeFileSync(PROMPT_FILE, promptText, "utf8");
 
+  const guiPatterns = loadGuiPatterns(ROOT);
+  const modelRecs = loadModelRecommendations(ROOT);
   const stepContent = readStepFile(ACTIVE_STEPS_DIR, next.filename);
-  const guiType = getGuiStepType(next.filename, stepContent);
-  const recommendedModel = getRecommendedModel(next.filename, stepContent);
+  const guiType = getGuiStepType(next.filename, stepContent, guiPatterns);
+  const recommendedModel = getRecommendedModel(next.filename, stepContent, guiPatterns, modelRecs);
   const modelHint = recommendedModel ? `\n**Recommended model:** \`${recommendedModel}\`` : "";
   
   let guiNote = "";
   if (guiType === "compound") {
-    guiNote = "\n\n> **GUI Compound Step:** This step groups multiple widgets. Use a capable model and expect 2-3 hours.";
+    guiNote = "\n\n> **GUI Compound Step:** This step groups multiple UI components. Use a capable model and expect 2-3 hours.";
   } else if (guiType === "simple") {
-    guiNote = "\n\n> **GUI Step:** This step modifies presentation/widget code. Using a capable model for better visual reasoning.";
+    guiNote = "\n\n> **GUI Step:** This step modifies UI/presentation code. Using a capable model for better visual reasoning.";
   }
 
   const nextMd = `# Next step
